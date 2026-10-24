@@ -35,9 +35,11 @@ systems here. Read the relevant document before touching a domain:
 
 | Document (absolute path)                                                        | When to read |
 |---------------------------------------------------------------------------------|--------------|
+| `C:\_DiskE\Projects\Unreal\UnrealTemplates\AGENTS.md`                            | **Start here** — UT build/test commands, code conventions, UHT prefix rules, migration/CoreRedirect policy, kit distribution |
 | `C:\_DiskE\Projects\Unreal\UnrealTemplates\README.md`                            | Overview of all domains, conventions, MCP setup |
 | `C:\_DiskE\Projects\Unreal\UnrealTemplates\REUSE_GUIDE.md`                       | **Before any integration** — dependency closure table, ownership/save contracts, minimal API usage |
 | `C:\_DiskE\Projects\Unreal\UnrealTemplates\ARCHITECTURE.md`                      | Before writing code that talks to domains — module boundaries, replication rules |
+| `C:\_DiskE\Projects\Unreal\UnrealTemplates\KIT_CATALOG.md` / `PLUGIN_CATALOG.md` | When choosing what to integrate next — kit/plugin lookup |
 | `C:\_DiskE\Projects\Unreal\UnrealTemplates\TEST_MATRIX.md`                       | Before claiming a domain "works" — what has actually been executed there |
 | `C:\_DiskE\Projects\Unreal\UnrealTemplates\DEBUGGING.md`                         | When debugging domain behavior or log output |
 | `C:\_DiskE\Projects\Unreal\UnrealTemplates\Plugins\<Plugin>\README.md`           | Before using a specific plugin's API |
@@ -57,6 +59,10 @@ Consequences:
 - `Plugins/UT*` is gitignored here; after a fresh clone run
   `powershell -NoProfile -ExecutionPolicy Bypass -File Tools/LinkToolkitPlugins.ps1`
   (recreates the junctions, idempotent) before opening the editor or building.
+  Equivalent alternative: the UT repo's official installer
+  `Tools/Install-UTKit.ps1 -Kit Adventure -Project <this repo> -Link`
+  (resolves the closure itself; `Kits/Adventure.json` lists the same six plugins —
+  `UTCombat` is pulled in as UTWorldMechanics' declared `.uplugin` dependency).
 - Never modify files under `Plugins/UT*` (from either project) to bend behavior —
   a suspected bug is fixed in the UT repository and benefits both projects; note the
   bug in `Docs/ToolkitIntegrationMatrix.md` in the meantime.

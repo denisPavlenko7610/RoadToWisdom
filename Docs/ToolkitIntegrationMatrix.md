@@ -1,11 +1,19 @@
 # Toolkit Integration Matrix — RoadToWisdom / Quiet Road
 
 Source toolkit: sibling repository `C:\_DiskE\Projects\Unreal\UnrealTemplates`
-(revision `fdcf1bcc07b3685dcf9f28c9f8297e46bf97192a`, branch `main`, "next step").
+(revision `6fab38d` — kits catalogs + `Install-UTKit.ps1`, branch `main`, clean tree).
 The plugins are **referenced, not copied**: `Plugins/UT*` here are NTFS directory
 junctions into `UnrealTemplates/Plugins/*` (both projects are developed in
 parallel and share one copy of the sources). Recreate the junctions after a fresh
-clone with `Tools/LinkToolkitPlugins.ps1` (idempotent); `Plugins/UT*` is gitignored.
+clone with `Tools/LinkToolkitPlugins.ps1` (idempotent) or the UT repo's
+`Tools/Install-UTKit.ps1 -Kit Adventure ... -Link`; `Plugins/UT*` is gitignored.
+
+Re-verified against the user's UT restructure (kits, uplugin polish): all seven
+`.uplugin` manifests kept their module names and dependencies unchanged, so the
+uproject/Build.cs declarations still match. Upstream class moves since the earlier
+snapshot that this project does not depend on: `UTCombatMessages.h` →
+`UTFoundationRuntime/Public/UTActorDiedMessage.h` and UTWorldMechanicsRuntime
+switching `UTCombatLite` to a Private dependency (consumers unaffected).
 
 Adopted set: **Adventure Kit closure** — `UTFoundation`, `UTInteraction`, `UTSave`,
 `UTItems`, `UTProgression`, `UTWorldMechanics`, plus `UTCombat` (mandatory
@@ -59,11 +67,13 @@ here.
 ## Verification plan
 
 1. UBT build of `RoadToWisdomEditor Win64 Development` — proves plugin closure
-   compiles against this project. **Executed: Succeeded** (2026-10-24).
+   compiles against this project. **Executed: Succeeded** — re-run after the user's
+   UT restructure (kits/uplugin polish) with the same clean result.
 2. Headless editor smoke: load generated map `L_QuietRoad_Prototype`, check log for
    plugin load errors / missing assets. **Executed: PASSED**
    (`Tools/Editor/VerifyPrototype.py` — all actors present, mission refs wired,
-   Item.Fuse payload correct, input IMCs resolve, 0 CDO errors).
+   Item.Fuse payload correct, input IMCs resolve, 0 CDO errors; re-verified on the
+   restructured UT revision).
 3. Game-mode boot: `-game -NullRHI` on the slice map. **Executed: clean exit 0**
    (caught and fixed a missing-UFUNCTION delegate bug in the process).
 4. PIE checklist: `Docs/TestingChecklist.md` — **manual-check-required** (needs a
