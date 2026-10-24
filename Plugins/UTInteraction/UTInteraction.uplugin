@@ -1,0 +1,18 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "UT Interaction",
+	"Description": "Interaction framework: candidate scoring, prompts, multi-option and hold interactions.",
+	"Category": "UTTemplates.Interaction",
+	"CreatedBy": "Denis Pavlenko",
+	"CanContainContent": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "UTInteractionRuntime",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

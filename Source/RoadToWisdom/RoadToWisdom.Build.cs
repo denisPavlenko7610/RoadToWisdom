@@ -20,6 +20,18 @@ public class RoadToWisdom : ModuleRules
 			"Slate"
 		});
 
+		// UnrealTemplates domain modules this project calls directly (see
+		// Docs/ToolkitIntegrationMatrix.md). UTCombat is present as UTWorldMechanics'
+		// dependency but is intentionally not declared: the game calls no combat API yet.
+		PublicDependencyModuleNames.AddRange(new string[] {
+			"UTFoundationRuntime",
+			"UTInteractionRuntime",
+			"UTSaveRuntime",
+			"UTItemsRuntime",
+			"UTInventoryRuntime",
+			"UTWorldMechanicsRuntime"
+		});
+
 		PublicIncludePaths.AddRange(new string[] {
 			"RoadToWisdom",
 			"RoadToWisdom/SportsCar",

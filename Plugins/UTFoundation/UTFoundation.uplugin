@@ -1,0 +1,18 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "UT Foundation",
+	"Description": "Foundation primitives shared by all UT modules: result type, base conditions, typed gameplay messages, native tags.",
+	"Category": "UTTemplates.Foundation",
+	"CreatedBy": "Denis Pavlenko",
+	"CanContainContent": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "UTFoundationRuntime",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
