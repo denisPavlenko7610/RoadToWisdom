@@ -8,9 +8,12 @@ parallel and share one copy of the sources). Recreate the junctions after a fres
 clone with `Tools/LinkToolkitPlugins.ps1` (idempotent) or the UT repo's
 `Tools/Install-UTKit.ps1 -Kit Adventure ... -Link`; `Plugins/UT*` is gitignored.
 
-Re-verified against the user's UT restructure (kits, uplugin polish): all seven
-`.uplugin` manifests kept their module names and dependencies unchanged, so the
-uproject/Build.cs declarations still match. Upstream class moves since the earlier
+Re-verified against the user's UT restructure (rev `166d5ee` — kits plus
+Test-KitInstall `-Package` mode): all seven `.uplugin` manifests kept their module
+names and dependencies unchanged, so the uproject/Build.cs declarations still match,
+and a control rebuild with the user's uncommitted `UTCollectibleComponent` edits
+succeeded. New uncommitted UT plugins (`UTGameplayState`, `UTTeams`) are **not**
+adopted here — nothing in the GDD needs them yet. Upstream class moves since the earlier
 snapshot that this project does not depend on: `UTCombatMessages.h` →
 `UTFoundationRuntime/Public/UTActorDiedMessage.h` and UTWorldMechanicsRuntime
 switching `UTCombatLite` to a Private dependency (consumers unaffected).
@@ -75,6 +78,7 @@ here.
    Item.Fuse payload correct, input IMCs resolve, 0 CDO errors; re-verified on the
    restructured UT revision).
 3. Game-mode boot: `-game -NullRHI` on the slice map. **Executed: clean exit 0**
-   (caught and fixed a missing-UFUNCTION delegate bug in the process).
+   (caught and fixed a missing-UFUNCTION delegate bug; also caught the per-map
+   GameMode not applying from ini — now bound in WorldSettings by the builder).
 4. PIE checklist: `Docs/TestingChecklist.md` — **manual-check-required** (needs a
    human in the editor; Unreal MCP server was not running during the session).
