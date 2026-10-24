@@ -25,7 +25,7 @@ class ARoadToWisdomPlacedPickup : public AUTWorldItem
 public:
 	/** Persistent identity for the save system (never derived from runtime names). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "QuietRoad|Save")
-	FName SaveStableId = TEXT("QuietRoad.Pickup.Default");
+	FName SaveStableId = NAME_None;
 
 	virtual void Interact_Implementation(const FUTInteractionInfo& Info) override;
 

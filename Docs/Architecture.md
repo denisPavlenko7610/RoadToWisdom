@@ -58,3 +58,10 @@ UTExamples/UTShowcase/UTIntegrations.
 
 `AUTLever` lacks the `IUTSaveable` contract that `AUTDoor` has, so lever state rides
 in the mission save section. Fix belongs in the UnrealTemplates repository.
+
+M1.4: all six sections (including Pickups v2) are required. The coordinator validates
+all payloads and fuse conservation before actor changes. Partial world-item payloads
+are re-created through AUTWorldItem.InitializeItem; transfer logic stays in Toolkit.
+Collected IDs reset on each restore attempt. Restore of AUTLever updates presentation
+without broadcasting gameplay events. Radio E press starts UT's Save hold; release
+within 0.3 s cancels it and requests Radio. Stowing cancels active interactions.

@@ -33,15 +33,22 @@ public:
 	ARoadToWisdomOnFootCharacter();
 
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+
 	virtual void Tick(float DeltaSeconds) override;
 
 	/** Interactor component (E key focus/interact, UTInteractionRuntime). */
 	UFUNCTION(BlueprintPure, Category = "QuietRoad")
-	UUTInteractorComponent* GetInteractor() const { return Interactor; }
+	UUTInteractorComponent* GetInteractor() const
+	{
+		return Interactor;
+	}
 
 	/** Inventory component (UTInventoryRuntime); receives picked-up items. */
 	UFUNCTION(BlueprintPure, Category = "QuietRoad")
-	UUTInventoryComponent* GetInventory() const { return Inventory; }
+	UUTInventoryComponent* GetInventory() const
+	{
+		return Inventory;
+	}
 
 	/** Stow/unstow the pawn while the player is driving (hidden, no collision, no ticking). */
 	void SetVehicleStowed(bool bStowed);
@@ -58,6 +65,15 @@ protected:
 
 	/** E pressed while on foot: interacts with the focused target (UTInteraction). */
 	void HandleInteract();
+
+	void ReleaseInteract();
+
+	void CancelInteract();
+
+	TWeakObjectPtr<AActor> PressedRadio;
+	double InteractPressedAt = 0.0;
+	UPROPERTY(EditAnywhere, Category = "QuietRoad|Input")
+	float RadioTapSeconds = 0.3f;
 
 	/** Third-person camera rig. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

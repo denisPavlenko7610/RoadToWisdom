@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "UTInventoryTypes.h"
+#include "UTWorldItem.h"
 #include "RoadToWisdomSaveCoordinator.generated.h"
 
 class ARoadToWisdomExplorerController;
@@ -41,12 +42,25 @@ struct FQRVehicleSection
 
 /** Collected placed-pickup ids (GDD 12: quest items must not respawn on load). */
 USTRUCT()
+struct FQRPickupRemainder
+{
+	GENERATED_BODY()
+	UPROPERTY()
+	FName StableId;
+	UPROPERTY()
+	FUTItemPayload Item;
+};
+
+USTRUCT()
 struct FQRPickupsSection
 {
 	GENERATED_BODY()
 
 	UPROPERTY()
 	TArray<FName> CollectedIds;
+	/** Live payloads preserve partial stack transfers; full transfers use CollectedIds. */
+	UPROPERTY()
+	TArray<FQRPickupRemainder> Remaining;
 };
 
 /** Player placement + control mode section. */
@@ -83,6 +97,8 @@ class URoadToWisdomSaveCoordinator : public UGameInstanceSubsystem
 public:
 	static constexpr TCHAR SlotName[] = TEXT("QuietRoad01");
 
+	static FName GetSessionSlotName();
+
 	/** Runtime record of a picked-up placed pickup (called by ARoadToWisdomPlacedPickup). */
 	void NotifyPickupCollected(FName StableId);
 
@@ -108,11 +124,6 @@ protected:
 	/** Ids collected during this session (persisted via the Pickups section). */
 	UPROPERTY()
 	TArray<FName> CollectedPickupIds;
-
-	FQRMissionSection ReadMissionSection(bool& bOutFound);
-	FQRVehicleSection ReadVehicleSection();
-	FQRPlayerSection ReadPlayerSection();
-	bool ReadInventorySection(FUTInventorySnapshot& OutSnapshot);
 
 	bool CaptureAndWriteSections(ARoadToWisdomMissionManager* Mission, ARoadToWisdomExplorerController* Controller);
 };

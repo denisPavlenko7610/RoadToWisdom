@@ -17,6 +17,7 @@ ARoadToWisdomDecorCluster::ARoadToWisdomDecorCluster()
 	TreeCrowns = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("TreeCrowns"));
 	TreeCrowns->SetupAttachment(TreeTrunks);
 	TreeCrowns->bEditableWhenInherited = true;
+	TreeCrowns->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	// Bushes never block movement; trunks/crowns/rocks keep the static-mesh default.
 	Bushes = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Bushes"));
@@ -32,15 +33,18 @@ ARoadToWisdomDecorCluster::ARoadToWisdomDecorCluster()
 void ARoadToWisdomDecorCluster::SetInstances(int32 Slot, const TArray<FTransform>& Instances)
 {
 	UHierarchicalInstancedStaticMeshComponent* Target = nullptr;
-	switch (Slot)
-	{
-	case 0: Target = TreeTrunks; break;
-	case 1: Target = TreeCrowns; break;
-	case 2: Target = Bushes; break;
-	case 3: Target = Rocks; break;
-	default:
-		UE_LOG(LogRoadToWisdom, Warning, TEXT("DecorCluster: unknown slot %d"), Slot);
-		return;
+	switch (Slot) {
+		case 0: Target = TreeTrunks;
+			break;
+		case 1: Target = TreeCrowns;
+			break;
+		case 2: Target = Bushes;
+			break;
+		case 3: Target = Rocks;
+			break;
+		default:
+			UE_LOG(LogRoadToWisdom, Warning, TEXT("DecorCluster: unknown slot %d"), Slot);
+			return;
 	}
 
 	// Official API only: both AddInstance and the batch AddInstances write straight
@@ -50,8 +54,7 @@ void ARoadToWisdomDecorCluster::SetInstances(int32 Slot, const TArray<FTransform
 	// world (now fixed by load_level in the generator).
 	Target->Modify();
 	Target->ClearInstances();
-	for (const FTransform& Transform : Instances)
-	{
+	for (const FTransform& Transform : Instances) {
 		Target->AddInstance(Transform, true);
 	}
 	UE_LOG(LogRoadToWisdom, Log, TEXT("DecorCluster slot %d: %d instances written"), Slot, Target->GetNumInstances());

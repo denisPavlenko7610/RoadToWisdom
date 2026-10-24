@@ -10,24 +10,30 @@
 
 void ARoadToWisdomPlacedPickup::Interact_Implementation(const FUTInteractionInfo& Info)
 {
-	// Record the collection BEFORE the super transaction: AUTWorldItem destroys the
-	// actor on a full pickup, and the record must outlive it in the coordinator.
-	if (URoadToWisdomSaveCoordinator* Coordinator = GetGameInstance() ? GetGameInstance()->GetSubsystem<URoadToWisdomSaveCoordinator>() : nullptr)
-	{
-		Coordinator->NotifyPickupCollected(SaveStableId);
+	if (SaveStableId.IsNone()) {
+		UE_LOG(LogRoadToWisdom, Error, TEXT("Pickup %s needs a unique SaveStableId."), *GetName());
+		return;
 	}
-	Super::Interact_Implementation(Info);
+	// TryPickup owns validation and transfer. Destroy marks the actor pending kill;
+	// capture the coordinator/id before calling it, then use its accepted quantity.
+	URoadToWisdomSaveCoordinator* Coordinator = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<URoadToWisdomSaveCoordinator>()
+		: nullptr;
+	const FName Id = SaveStableId;
+	const int32 Before = GetItem().GetCount();
+	const int32 Accepted = TryPickup(Info.Interactor.Get());
+	if (Coordinator && Accepted > 0 && Accepted == Before) {
+		Coordinator->NotifyPickupCollected(Id);
+	}
 }
 
 void ARoadToWisdomPlacedPickup::GetAllPlacedPickups(UWorld* World, TArray<ARoadToWisdomPlacedPickup*>& OutPickups)
 {
 	OutPickups.Reset();
-	if (!World)
-	{
+	if (!World) {
 		return;
 	}
-	for (TActorIterator<ARoadToWisdomPlacedPickup> It(World); It; ++It)
-	{
+	for (TActorIterator<ARoadToWisdomPlacedPickup> It(World); It; ++It) {
 		OutPickups.Add(*It);
 	}
 }

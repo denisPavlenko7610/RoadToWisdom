@@ -28,26 +28,21 @@ void ARoadToWisdomMissionManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (FuseBox)
-	{
+	if (FuseBox) {
 		FuseBox->OnFuseInstalled.AddDynamic(this, &ARoadToWisdomMissionManager::HandleFuseInstalled);
 	}
-	else
-	{
+	else {
 		UE_LOG(LogRoadToWisdom, Error, TEXT("MissionManager: FuseBox reference is not set."));
 	}
 
-	if (Lever)
-	{
+	if (Lever) {
 		Lever->OnSwitched.AddDynamic(this, &ARoadToWisdomMissionManager::HandleLeverSwitched);
 	}
-	else
-	{
+	else {
 		UE_LOG(LogRoadToWisdom, Error, TEXT("MissionManager: Lever reference is not set."));
 	}
 
-	if (Stage == EQRRelayMissionStage::WaitForArrival)
-	{
+	if (Stage == EQRRelayMissionStage::WaitForArrival) {
 		GetWorldTimerManager().SetTimer(ArrivalTimer, this, &ARoadToWisdomMissionManager::CheckArrival, 1.0f, true);
 	}
 	SetObjectiveText();
@@ -61,46 +56,41 @@ void ARoadToWisdomMissionManager::EndPlay(const EEndPlayReason::Type EndPlayReas
 
 FText ARoadToWisdomMissionManager::GetRadioMessage() const
 {
-	switch (Stage)
-	{
-	case EQRRelayMissionStage::WaitForArrival:
-		return NSLOCTEXT("QuietRoad", "RadioStage0", "Тишина в эфире. Координаты ретранслятора помечены: восток, у дороги.");
-	case EQRRelayMissionStage::FindFuse:
-		return NSLOCTEXT("QuietRoad", "RadioStage1", "Ретранслятор молчит из-за питания. Найдите предохранитель и вставьте его в щиток.");
-	case EQRRelayMissionStage::PullLever:
-		return NSLOCTEXT("QuietRoad", "RadioStage2", "Питание почти восстановлено. Включите рубильник станции.");
-	case EQRRelayMissionStage::Completed:
-	default:
-		return NSLOCTEXT("QuietRoad", "RadioStage3", "Ретранслятор в эфире. Радиосканер обновил карту района.");
+	switch (Stage) {
+		case EQRRelayMissionStage::WaitForArrival: return NSLOCTEXT(
+				"QuietRoad", "RadioStage0", "Тишина в эфире. Координаты ретранслятора помечены: восток, у дороги."
+			);
+		case EQRRelayMissionStage::FindFuse: return NSLOCTEXT(
+				"QuietRoad", "RadioStage1", "Ретранслятор молчит из-за питания. Найдите предохранитель и вставьте его в щиток."
+			);
+		case EQRRelayMissionStage::PullLever: return NSLOCTEXT(
+				"QuietRoad", "RadioStage2", "Питание почти восстановлено. Включите рубильник станции."
+			);
+		case EQRRelayMissionStage::Completed:
+		default: return NSLOCTEXT("QuietRoad", "RadioStage3", "Ретранслятор в эфире. Радиосканер обновил карту района.");
 	}
 }
 
 void ARoadToWisdomMissionManager::AdvanceStage()
 {
-	if (Stage >= EQRRelayMissionStage::Completed)
-	{
+	if (Stage >= EQRRelayMissionStage::Completed) {
 		return;
 	}
 
 	Stage = static_cast<EQRRelayMissionStage>(static_cast<uint8>(Stage) + 1);
 	SetObjectiveText();
 
-	if (Stage == EQRRelayMissionStage::Completed)
-	{
+	if (Stage == EQRRelayMissionStage::Completed) {
 		OnMissionMessage.Broadcast(CompletionMessage);
 		OnMissionCompleted.Broadcast();
 	}
 
 	// Persist after every committed advance so reloads cannot replay a step.
-	if (URoadToWisdomSaveCoordinator* Coordinator = GetGameInstance()->GetSubsystem<URoadToWisdomSaveCoordinator>())
-	{
-		if (!Coordinator->SaveSession(this))
-		{
+	if (URoadToWisdomSaveCoordinator* Coordinator = GetGameInstance()->GetSubsystem<URoadToWisdomSaveCoordinator>()) {
+		if (!Coordinator->SaveSession(this)) {
 			UE_LOG(LogRoadToWisdom, Error, TEXT("AdvanceStage: session save failed, progress may not persist."));
-			if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
-			{
-				if (ARoadToWisdomExplorerController* Explorer = Cast<ARoadToWisdomExplorerController>(PC))
-				{
+			if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0)) {
+				if (ARoadToWisdomExplorerController* Explorer = Cast<ARoadToWisdomExplorerController>(PC)) {
 					Explorer->ShowHUDHint(NSLOCTEXT("QuietRoad", "SaveFailed", "Не удалось сохранить прогресс"));
 				}
 			}
@@ -111,20 +101,21 @@ void ARoadToWisdomMissionManager::AdvanceStage()
 void ARoadToWisdomMissionManager::SetObjectiveText()
 {
 	FText Objective;
-	switch (Stage)
-	{
-	case EQRRelayMissionStage::WaitForArrival: Objective = ObjectiveWaitForArrival; break;
-	case EQRRelayMissionStage::FindFuse:       Objective = ObjectiveFindFuse; break;
-	case EQRRelayMissionStage::PullLever:      Objective = ObjectivePullLever; break;
-	case EQRRelayMissionStage::Completed:      Objective = ObjectiveCompleted; break;
+	switch (Stage) {
+		case EQRRelayMissionStage::WaitForArrival: Objective = ObjectiveWaitForArrival;
+			break;
+		case EQRRelayMissionStage::FindFuse: Objective = ObjectiveFindFuse;
+			break;
+		case EQRRelayMissionStage::PullLever: Objective = ObjectivePullLever;
+			break;
+		case EQRRelayMissionStage::Completed: Objective = ObjectiveCompleted;
+			break;
 	}
 	CurrentObjective = Objective;
 
 	OnObjectiveChanged.Broadcast(Objective);
-	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
-	{
-		if (ARoadToWisdomExplorerController* Explorer = Cast<ARoadToWisdomExplorerController>(PC))
-		{
+	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0)) {
+		if (ARoadToWisdomExplorerController* Explorer = Cast<ARoadToWisdomExplorerController>(PC)) {
 			Explorer->SetHUDObjective(Objective);
 		}
 	}
@@ -132,8 +123,7 @@ void ARoadToWisdomMissionManager::SetObjectiveText()
 
 void ARoadToWisdomMissionManager::HandleFuseInstalled()
 {
-	if (Stage == EQRRelayMissionStage::FindFuse)
-	{
+	if (Stage == EQRRelayMissionStage::FindFuse) {
 		AdvanceStage(); // FindFuse -> PullLever
 	}
 }
@@ -141,23 +131,20 @@ void ARoadToWisdomMissionManager::HandleFuseInstalled()
 void ARoadToWisdomMissionManager::HandleLeverSwitched(AUTLever* InLever, bool bIsOn)
 {
 	// Stage guard keeps replays of the lever event (including a save restore) idempotent.
-	if (bIsOn && Stage == EQRRelayMissionStage::PullLever)
-	{
+	if (bIsOn && Stage == EQRRelayMissionStage::PullLever) {
 		AdvanceStage(); // PullLever -> Completed
 	}
 }
 
 void ARoadToWisdomMissionManager::CheckArrival()
 {
-	if (Stage != EQRRelayMissionStage::WaitForArrival || !FuseBox)
-	{
+	if (Stage != EQRRelayMissionStage::WaitForArrival || !FuseBox) {
 		GetWorldTimerManager().ClearTimer(ArrivalTimer);
 		return;
 	}
 
 	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
-	if (PlayerPawn && FVector::Dist(PlayerPawn->GetActorLocation(), FuseBox->GetActorLocation()) <= ArriveRadius)
-	{
+	if (PlayerPawn && FVector::Dist(PlayerPawn->GetActorLocation(), FuseBox->GetActorLocation()) <= ArriveRadius) {
 		GetWorldTimerManager().ClearTimer(ArrivalTimer);
 		AdvanceStage(); // WaitForArrival -> FindFuse
 		OnMissionMessage.Broadcast(NSLOCTEXT("QuietRoad", "ArrivedMsg", "Ретранслятор рядом. Осмотрите щиток у опоры."));
@@ -171,15 +158,14 @@ void ARoadToWisdomMissionManager::ApplyState(EQRRelayMissionStage InStage, bool 
 	// The WorldMechanics lever has no IUTSaveable contract yet (see the toolkit
 	// integration matrix), so its state rides in the mission section. SetOn broadcasts
 	// OnSwitched, but HandleLeverSwitched is stage-guarded and no-ops after a restore.
-	if (Lever && bLeverWasOn && !Lever->bIsOn)
-	{
-		Lever->SetOn(true);
+	if (Lever) {
+		Lever->bIsOn = bLeverWasOn;
+		Lever->OnRep_IsOn(); // presentation only; no gameplay event during restore
 	}
 
 	SetObjectiveText();
 
-	if (Stage != EQRRelayMissionStage::WaitForArrival)
-	{
+	if (Stage != EQRRelayMissionStage::WaitForArrival) {
 		GetWorldTimerManager().ClearTimer(ArrivalTimer);
 	}
 }
