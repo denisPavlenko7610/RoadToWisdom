@@ -9,7 +9,14 @@ public class UTWorldMechanicsRuntime : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "GameplayTags", "UTFoundationRuntime", "UTInteractionRuntime", "UTCombatLite", "UTSaveRuntime"
+			"Core", "CoreUObject", "Engine", "GameplayTags", "UTFoundationRuntime", "UTInteractionRuntime", "UTSaveRuntime"
+		});
+
+		// Only UTRespawnComponent's implementation touches CombatLite health; no public
+		// header includes it, so consumers do not inherit the dependency.
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"UTCombatLite"
 		});
 	}
 }

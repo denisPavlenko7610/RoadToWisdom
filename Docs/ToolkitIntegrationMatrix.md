@@ -1,10 +1,11 @@
 # Toolkit Integration Matrix — RoadToWisdom / Quiet Road
 
 Source toolkit: sibling repository `C:\_DiskE\Projects\Unreal\UnrealTemplates`
-(revision `fdcf1bcc07b3685dcf9f28c9f8297e46bf97192a`, branch `main`, "next step"),
-copied into `Plugins/` per `UnrealTemplates/REUSE_GUIDE.md`. Copied plugin folders
-contain `Source/` + `Content/` only (stale `Binaries/`, `Intermediate/` removed;
-they are gitignored anyway and rebuilt per project).
+(revision `fdcf1bcc07b3685dcf9f28c9f8297e46bf97192a`, branch `main`, "next step").
+The plugins are **referenced, not copied**: `Plugins/UT*` here are NTFS directory
+junctions into `UnrealTemplates/Plugins/*` (both projects are developed in
+parallel and share one copy of the sources). Recreate the junctions after a fresh
+clone with `Tools/LinkToolkitPlugins.ps1` (idempotent); `Plugins/UT*` is gitignored.
 
 Adopted set: **Adventure Kit closure** — `UTFoundation`, `UTInteraction`, `UTSave`,
 `UTItems`, `UTProgression`, `UTWorldMechanics`, plus `UTCombat` (mandatory

@@ -42,19 +42,26 @@ systems here. Read the relevant document before touching a domain:
 | `C:\_DiskE\Projects\Unreal\UnrealTemplates\DEBUGGING.md`                         | When debugging domain behavior or log output |
 | `C:\_DiskE\Projects\Unreal\UnrealTemplates\Plugins\<Plugin>\README.md`           | Before using a specific plugin's API |
 
-Adopted integration set (GDD §16 "Adventure Kit"), copied per the UT REUSE_GUIDE
-into `Plugins/` of this project:
+Adopted integration set (GDD §16 "Adventure Kit"):
 
 ```
 UTFoundation, UTInteraction, UTSave, UTItems, UTProgression, UTWorldMechanics,
 UTCombat (required by UTWorldMechanics)
 ```
 
-Toolkit rules (non-negotiable):
+**The plugins are referenced, not copied.** `Plugins/UT*` in this repo are NTFS
+directory junctions pointing at `C:\_DiskE\Projects\Unreal\UnrealTemplates\Plugins\*`
+so both projects share one copy of the sources (the user develops both in parallel).
+Consequences:
 
-- **Never edit files under `Plugins/UT*` in this repo** to bend their behavior.
-  A suspected bug is fixed in the UT repository and re-copied; note the bug in
-  `Docs/ToolkitIntegrationMatrix.md` in the meantime.
+- `Plugins/UT*` is gitignored here; after a fresh clone run
+  `powershell -NoProfile -ExecutionPolicy Bypass -File Tools/LinkToolkitPlugins.ps1`
+  (recreates the junctions, idempotent) before opening the editor or building.
+- Never modify files under `Plugins/UT*` (from either project) to bend behavior —
+  a suspected bug is fixed in the UT repository and benefits both projects; note the
+  bug in `Docs/ToolkitIntegrationMatrix.md` in the meantime.
+- Building this project writes UT plugin `Binaries/`/`Intermediate/` into the
+  UnrealTemplates folders through the junctions — that is expected and gitignored there.
 - **Never guess a UT API.** Open the actual header under
   `Plugins/UT*/Source/*/Public/` in this repo (or the UT repo) and read it.
 - Do not enable `UTExamples`, `UTShowcase`, `UTIntegrations` (GAS / StateTree /

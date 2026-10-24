@@ -17,7 +17,8 @@ public class RoadToWisdom : ModuleRules
 			"ChaosVehicles",
 			"PhysicsCore",
 			"UMG",
-			"Slate"
+			"Slate",
+			"SlateCore"
 		});
 
 		// UnrealTemplates domain modules this project calls directly (see
