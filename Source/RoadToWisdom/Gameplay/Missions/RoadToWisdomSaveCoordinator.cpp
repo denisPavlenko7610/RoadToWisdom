@@ -21,38 +21,45 @@ namespace
 	constexpr int32 SectionVersion = 1;
 }
 
-void URoadToWisdomSaveCoordinator::SaveSession(ARoadToWisdomMissionManager* Mission)
+bool URoadToWisdomSaveCoordinator::SaveSession(ARoadToWisdomMissionManager* Mission)
 {
 	UWorld* World = GetGameInstance()->GetWorld();
 	if (!World || !Mission)
 	{
-		return;
+		return false;
 	}
 
 	ARoadToWisdomExplorerController* Controller = Cast<ARoadToWisdomExplorerController>(UGameplayStatics::GetPlayerController(World, 0));
 	if (!Controller)
 	{
 		UE_LOG(LogRoadToWisdom, Warning, TEXT("SaveSession: no explorer controller, skipping."));
-		return;
+		return false;
 	}
 
 	UUTSaveSubsystem* Save = GetGameInstance()->GetSubsystem<UUTSaveSubsystem>();
 	if (!Save)
 	{
 		UE_LOG(LogRoadToWisdom, Error, TEXT("SaveSession: UTSaveSubsystem unavailable."));
-		return;
+		return false;
 	}
 
-	CaptureAndWriteSections(Mission, Controller);
+	if (!CaptureAndWriteSections(Mission, Controller))
+	{
+		// A failed capture/write must not produce a partially updated slot.
+		UE_LOG(LogRoadToWisdom, Error, TEXT("SaveSession: capture/write failed, slot not written."));
+		return false;
+	}
 
 	const FUTResult Result = Save->SaveToSlot(FName(SlotName));
 	UE_LOG(LogRoadToWisdom, Log, TEXT("SaveSession: %s"), *Result.Message.ToString());
+	return Result.IsSuccess();
 }
 
-void URoadToWisdomSaveCoordinator::CaptureAndWriteSections(ARoadToWisdomMissionManager* Mission, ARoadToWisdomExplorerController* Controller)
+bool URoadToWisdomSaveCoordinator::CaptureAndWriteSections(ARoadToWisdomMissionManager* Mission, ARoadToWisdomExplorerController* Controller)
 {
 	UUTSaveSubsystem* Save = GetGameInstance()->GetSubsystem<UUTSaveSubsystem>();
 	UWorld* World = GetGameInstance()->GetWorld();
+	FUTResult Result;
 
 	// Mission stage + lever state.
 	FQRMissionSection MissionSection;
@@ -61,26 +68,40 @@ void URoadToWisdomSaveCoordinator::CaptureAndWriteSections(ARoadToWisdomMissionM
 	{
 		MissionSection.bLeverOn = Mission->Lever->bIsOn;
 	}
-	Save->WriteSection(TEXT("Mission"), SectionVersion, MissionSection);
+	Result = Save->WriteSection(TEXT("Mission"), SectionVersion, MissionSection);
+	if (!Result.IsSuccess())
+	{
+		UE_LOG(LogRoadToWisdom, Error, TEXT("SaveSession: Mission section: %s"), *Result.Message.ToString());
+		return false;
+	}
 
 	// Player inventory.
 	if (Controller->OnFootCharacter && Controller->OnFootCharacter->GetInventory())
 	{
-		Save->WriteSection(TEXT("Inventory"), SectionVersion, Controller->OnFootCharacter->GetInventory()->MakeSnapshot());
+		Result = Save->WriteSection(TEXT("Inventory"), SectionVersion, Controller->OnFootCharacter->GetInventory()->MakeSnapshot());
+		if (!Result.IsSuccess())
+		{
+			UE_LOG(LogRoadToWisdom, Error, TEXT("SaveSession: Inventory section: %s"), *Result.Message.ToString());
+			return false;
+		}
 	}
 
-	// World saveables (fuse box etc.) via the UT world-state layer.
+	// World saveables (fuse box etc.) via the UT world-state layer. Duplicate
+	// stable ids fail the capture here instead of silently corrupting the save.
+	FUTWorldStateSnapshot Snapshot;
 	if (UUTWorldStateSubsystem* WorldState = World->GetSubsystem<UUTWorldStateSubsystem>())
 	{
-		FUTWorldStateSnapshot Snapshot;
-		const FUTResult Capture = WorldState->CaptureWorldState(Snapshot);
-		if (Capture.IsSuccess())
+		Result = WorldState->CaptureWorldState(Snapshot);
+		if (!Result.IsSuccess())
 		{
-			Save->WriteSection(TEXT("World"), SectionVersion, Snapshot);
+			UE_LOG(LogRoadToWisdom, Error, TEXT("SaveSession: world capture: %s"), *Result.Message.ToString());
+			return false;
 		}
-		else
+		Result = Save->WriteSection(TEXT("World"), SectionVersion, Snapshot);
+		if (!Result.IsSuccess())
 		{
-			UE_LOG(LogRoadToWisdom, Error, TEXT("SaveSession: world capture failed: %s"), *Capture.Message.ToString());
+			UE_LOG(LogRoadToWisdom, Error, TEXT("SaveSession: World section: %s"), *Result.Message.ToString());
+			return false;
 		}
 	}
 
@@ -90,7 +111,12 @@ void URoadToWisdomSaveCoordinator::CaptureAndWriteSections(ARoadToWisdomMissionM
 		FQRVehicleSection VehicleSection;
 		VehicleSection.Transform = Controller->VanPawn->GetActorTransform();
 		VehicleSection.bValid = true;
-		Save->WriteSection(TEXT("Vehicle"), SectionVersion, VehicleSection);
+		Result = Save->WriteSection(TEXT("Vehicle"), SectionVersion, VehicleSection);
+		if (!Result.IsSuccess())
+		{
+			UE_LOG(LogRoadToWisdom, Error, TEXT("SaveSession: Vehicle section: %s"), *Result.Message.ToString());
+			return false;
+		}
 	}
 
 	// Player placement + control mode.
@@ -102,7 +128,13 @@ void URoadToWisdomSaveCoordinator::CaptureAndWriteSections(ARoadToWisdomMissionM
 		PlayerSection.Transform = CurrentPawn->GetActorTransform();
 		PlayerSection.bValid = true;
 	}
-	Save->WriteSection(TEXT("Player"), SectionVersion, PlayerSection);
+	Result = Save->WriteSection(TEXT("Player"), SectionVersion, PlayerSection);
+	if (!Result.IsSuccess())
+	{
+		UE_LOG(LogRoadToWisdom, Error, TEXT("SaveSession: Player section: %s"), *Result.Message.ToString());
+		return false;
+	}
+	return true;
 }
 
 bool URoadToWisdomSaveCoordinator::TryRestoreSession(ARoadToWisdomExplorerController* Controller)

@@ -28,6 +28,11 @@ ARoadToWisdomFuseBox::ARoadToWisdomFuseBox()
 void ARoadToWisdomFuseBox::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (SaveStableId.IsNone())
+	{
+		UE_LOG(LogRoadToWisdom, Warning, TEXT("FuseBox %s: SaveStableId is not configured; save capture will skip it."), *GetName());
+	}
 	OnRep_FuseInstalled(); // sync visuals with the deserialized/initial state
 }
 

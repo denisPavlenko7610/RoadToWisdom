@@ -42,13 +42,32 @@ ARoadToWisdomOnFootCharacter::ARoadToWisdomOnFootCharacter()
 	// UTInteraction: trace-based focus + prompts; input-agnostic, E is bound below.
 	Interactor = CreateDefaultSubobject<UUTInteractorComponent>(TEXT("Interactor"));
 	Interactor->InteractionDistance = 300.f;
-	Interactor->PrimaryComponentTick.bCanEverTick = false; // refreshed from Tick() below
+	// Tick is owned by the component itself: it enables it for local hold interactions.
 
 	// UTItems: mission items (e.g. the relay fuse) land here.
 	Inventory = CreateDefaultSubobject<UUTInventoryComponent>(TEXT("Inventory"));
 	Inventory->MaxSlots = 8;
 
 	PrimaryActorTick.bCanEverTick = true;
+
+	// Asset references are resolved here, in the constructor (ConstructorHelpers is
+	// only legal during object construction); missing assets degrade to null members
+	// and a logged warning at bind time, not a crash.
+	ConstructorHelpers::FObjectFinder<UInputAction> MoveActionFinder(TEXT("/Game/QuietRoad/Input/Actions/IA_QR_Move.IA_QR_Move"));
+	if (MoveActionFinder.Succeeded())
+	{
+		MoveAction = MoveActionFinder.Object;
+	}
+	ConstructorHelpers::FObjectFinder<UInputAction> LookActionFinder(TEXT("/Game/QuietRoad/Input/Actions/IA_QR_Look.IA_QR_Look"));
+	if (LookActionFinder.Succeeded())
+	{
+		LookAction = LookActionFinder.Object;
+	}
+	ConstructorHelpers::FObjectFinder<UInputAction> InteractActionFinder(TEXT("/Game/QuietRoad/Input/Actions/IA_QR_Interact.IA_QR_Interact"));
+	if (InteractActionFinder.Succeeded())
+	{
+		InteractAction = InteractActionFinder.Object;
+	}
 }
 
 void ARoadToWisdomOnFootCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -62,33 +81,25 @@ void ARoadToWisdomOnFootCharacter::SetupPlayerInputComponent(UInputComponent* Pl
 		return;
 	}
 
-	// The input action assets are created by Tools/Editor scripts into
-	// /Game/QuietRoad/Input; missing assets degrade to a logged error, not a crash.
-	ConstructorHelpers::FObjectFinder<UInputAction> MoveActionFinder(TEXT("/Game/QuietRoad/Input/Actions/IA_QR_Move.IA_QR_Move"));
-	if (MoveActionFinder.Succeeded())
-	{
-		Input->BindAction(MoveActionFinder.Object, ETriggerEvent::Triggered, this, &ARoadToWisdomOnFootCharacter::Move);
-	}
-	else
-	{
-		UE_LOG(LogRoadToWisdom, Warning, TEXT("OnFootCharacter: IA_QR_Move not found (run the editor input script)."));
-	}
-
-	ConstructorHelpers::FObjectFinder<UInputAction> LookActionFinder(TEXT("/Game/QuietRoad/Input/Actions/IA_QR_Look.IA_QR_Look"));
-	if (LookActionFinder.Succeeded())
-	{
-		Input->BindAction(LookActionFinder.Object, ETriggerEvent::Triggered, this, &ARoadToWisdomOnFootCharacter::Look);
-	}
-
-	ConstructorHelpers::FObjectFinder<UInputAction> InteractActionFinder(TEXT("/Game/QuietRoad/Input/Actions/IA_QR_Interact.IA_QR_Interact"));
-	if (InteractActionFinder.Succeeded())
-	{
-		// Deliberately input-agnostic per UTInteraction: the action just triggers the interactor.
-		Input->BindAction(InteractActionFinder.Object, ETriggerEvent::Started, this, &ARoadToWisdomOnFootCharacter::HandleInteract);
-	}
-
 	// F is intentionally NOT bound here: the explorer controller owns it so that the
 	// same action toggles exit (driving) and enter (on foot) without duplicate handlers.
+	if (MoveAction)
+	{
+		Input->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ARoadToWisdomOnFootCharacter::Move);
+	}
+	if (LookAction)
+	{
+		Input->BindAction(LookAction, ETriggerEvent::Triggered, this, &ARoadToWisdomOnFootCharacter::Look);
+	}
+	if (InteractAction)
+	{
+		// Deliberately input-agnostic per UTInteraction: the action just triggers the interactor.
+		Input->BindAction(InteractAction, ETriggerEvent::Started, this, &ARoadToWisdomOnFootCharacter::HandleInteract);
+	}
+	if (!MoveAction || !LookAction || !InteractAction)
+	{
+		UE_LOG(LogRoadToWisdom, Warning, TEXT("OnFootCharacter: some input actions are unassigned (run Tools/Editor/BuildQuietRoadPrototype.py)."));
+	}
 }
 
 void ARoadToWisdomOnFootCharacter::Tick(float DeltaSeconds)

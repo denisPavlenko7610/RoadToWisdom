@@ -38,6 +38,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "QuietRoad|HUD")
 	void ShowHint(const FText& Hint, float Seconds = 2.5f);
 
+	/** Small control-mode label ("Пешком" / "В фургоне"), top-left corner. */
+	UFUNCTION(BlueprintCallable, Category = "QuietRoad|HUD")
+	void SetMode(const FText& Mode);
+
 protected:
 	/** Creates a styled text block (caller adds it to the canvas). */
 	UTextBlock* MakeText(int32 FontSize, FLinearColor Color) const;
@@ -47,6 +51,9 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UTextBlock> ObjectiveText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> ModeText;
 
 	UPROPERTY()
 	TObjectPtr<UTextBlock> PromptText;

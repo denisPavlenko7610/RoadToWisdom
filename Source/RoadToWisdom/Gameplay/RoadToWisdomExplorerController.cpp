@@ -19,6 +19,7 @@
 #include "Character/RoadToWisdomOnFootCharacter.h"
 #include "UI/RoadToWisdomHUDWidget.h"
 #include "Missions/RoadToWisdomSaveCoordinator.h"
+#include "Missions/RoadToWisdomMissionManager.h"
 
 ARoadToWisdomExplorerController::ARoadToWisdomExplorerController()
 {
@@ -74,7 +75,77 @@ void ARoadToWisdomExplorerController::BeginPlay()
 		}
 	}
 
+	// The game starts on foot, so the placed van never passes through OnPossess here:
+	// register it once from the world (tagged actor), independent of the possession
+	// order, then let the HUD show the current mission state immediately.
+	RegisterVanFromWorld();
+	SyncHudFromMission();
+	UpdateHudMode();
+
 	TryRestoreSession();
+}
+
+void ARoadToWisdomExplorerController::RegisterVanFromWorld()
+{
+	if (bVanRegistrationAttempted || IsValid(VanPawn))
+	{
+		return;
+	}
+	bVanRegistrationAttempted = true;
+
+	TArray<AActor*> Tagged;
+	UGameplayStatics::GetAllActorsWithTag(this, VanTag, Tagged);
+
+	if (Tagged.Num() == 0)
+	{
+		// Template maps have no tagged van; the slice map must have exactly one.
+		UE_LOG(LogRoadToWisdom, Warning, TEXT("RegisterVanFromWorld: no actor tagged '%s' in this map."), *VanTag.ToString());
+		return;
+	}
+	if (Tagged.Num() > 1)
+	{
+		UE_LOG(LogRoadToWisdom, Error, TEXT("RegisterVanFromWorld: %d actors tagged '%s', exactly one expected. Using the first."), Tagged.Num(), *VanTag.ToString());
+	}
+
+	VanPawn = Cast<ARoadToWisdomPawn>(Tagged[0]);
+	if (!IsValid(VanPawn))
+	{
+		UE_LOG(LogRoadToWisdom, Error, TEXT("RegisterVanFromWorld: tagged actor '%s' is not an ARoadToWisdomPawn."), *Tagged[0]->GetName());
+	}
+}
+
+void ARoadToWisdomExplorerController::SyncHudFromMission()
+{
+	if (!HUD)
+	{
+		return;
+	}
+
+	TArray<AActor*> Managers;
+	UGameplayStatics::GetAllActorsOfClass(this, ARoadToWisdomMissionManager::StaticClass(), Managers);
+	if (Managers.Num() == 0)
+	{
+		return; // template maps: no mission, no objective
+	}
+	if (Managers.Num() > 1)
+	{
+		UE_LOG(LogRoadToWisdom, Error, TEXT("SyncHudFromMission: %d mission managers in the map, exactly one expected."), Managers.Num());
+	}
+
+	if (const ARoadToWisdomMissionManager* Manager = Cast<ARoadToWisdomMissionManager>(Managers[0]))
+	{
+		HUD->SetObjective(Manager->GetCurrentObjective());
+	}
+}
+
+void ARoadToWisdomExplorerController::UpdateHudMode()
+{
+	if (HUD)
+	{
+		HUD->SetMode(IsDriving()
+			? NSLOCTEXT("QuietRoad", "ModeDriving", "В фургоне")
+			: NSLOCTEXT("QuietRoad", "ModeOnFoot", "Пешком"));
+	}
 }
 
 void ARoadToWisdomExplorerController::SetupInputComponent()
@@ -105,6 +176,7 @@ void ARoadToWisdomExplorerController::OnPossess(APawn* InPawn)
 		VanPawn = Vehicle;
 		ControlMode = EQRControlMode::Driving;
 		ApplyMappingContexts(EQRControlMode::Driving);
+		UpdateHudMode();
 	}
 	else if (ARoadToWisdomOnFootCharacter* Explorer = Cast<ARoadToWisdomOnFootCharacter>(InPawn))
 	{
@@ -112,6 +184,7 @@ void ARoadToWisdomExplorerController::OnPossess(APawn* InPawn)
 		Explorer->SetVehicleStowed(false);
 		ControlMode = EQRControlMode::OnFoot;
 		ApplyMappingContexts(EQRControlMode::OnFoot);
+		UpdateHudMode();
 
 		if (bHasPendingRestore)
 		{
@@ -259,9 +332,12 @@ bool ARoadToWisdomExplorerController::TryEnterVehicle()
 		return false;
 	}
 
-	if (!OnFootCharacter || FVector::Dist(OnFootCharacter->GetActorLocation(), VanPawn->GetActorLocation()) > EnterMaxDistance)
+	// Measure from the driver door, not from the vehicle origin: a long camper van
+	// would otherwise accept an F from the middle of its body.
+	const FVector DoorLocation = VanPawn->GetActorTransform().TransformPosition(EnterProbeOffset);
+	if (!OnFootCharacter || FVector::Dist(OnFootCharacter->GetActorLocation(), DoorLocation) > EnterMaxDistance)
 	{
-		ShowHUDHint(NSLOCTEXT("QuietRoad", "ComeCloser", "Подойдите к фургону, чтобы сесть"));
+		ShowHUDHint(NSLOCTEXT("QuietRoad", "ComeCloser", "Подойдите к водительской двери, чтобы сесть"));
 		return false;
 	}
 
@@ -314,8 +390,13 @@ bool ARoadToWisdomExplorerController::IsExitSpotClear(const FTransform& WorldTra
 	{
 		Ignored.Add(OnFootCharacter);
 	}
-	return !UKismetSystemLibrary::SphereTraceSingle(this, WorldTransform.GetLocation(), WorldTransform.GetLocation(),
-		ExitSpotRadius, UEngineTypes::ConvertToTraceType(ECC_Pawn), false, Ignored, EDrawDebugTrace::None, Hit, true);
+
+	// Full capsule volume of the on-foot pawn. WorldTransform is the pawn's origin
+	// (capsule center); lift the trace 2 cm so the ground the candidate stands on
+	// does not count as an obstruction while walls/trees still do.
+	const FVector Center = WorldTransform.GetLocation() + FVector(0.f, 0.f, 2.f);
+	return !UKismetSystemLibrary::CapsuleTraceSingle(this, Center, Center,
+		ExitSpotRadius, 90.f, UEngineTypes::ConvertToTraceType(ECC_Pawn), false, Ignored, EDrawDebugTrace::None, Hit, true);
 }
 
 void ARoadToWisdomExplorerController::ApplyPendingSessionRestore()
@@ -370,6 +451,14 @@ void ARoadToWisdomExplorerController::TryRestoreSession()
 	if (URoadToWisdomSaveCoordinator* Coordinator = GetGameInstance()->GetSubsystem<URoadToWisdomSaveCoordinator>())
 	{
 		Coordinator->TryRestoreSession(this);
+	}
+
+	// Possession may have happened before this BeginPlay ran (auto-possessed local
+	// players); OnPossess's next-tick hook will never fire for it. Apply now — this
+	// path is outside any possession stack. The guard inside keeps it one-shot.
+	if (bHasPendingRestore && OnFootCharacter)
+	{
+		ApplyPendingSessionRestore();
 	}
 }
 

@@ -78,7 +78,17 @@ void ARoadToWisdomMissionManager::AdvanceStage()
 	// Persist after every committed advance so reloads cannot replay a step.
 	if (URoadToWisdomSaveCoordinator* Coordinator = GetGameInstance()->GetSubsystem<URoadToWisdomSaveCoordinator>())
 	{
-		Coordinator->SaveSession(this);
+		if (!Coordinator->SaveSession(this))
+		{
+			UE_LOG(LogRoadToWisdom, Error, TEXT("AdvanceStage: session save failed, progress may not persist."));
+			if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+			{
+				if (ARoadToWisdomExplorerController* Explorer = Cast<ARoadToWisdomExplorerController>(PC))
+				{
+					Explorer->ShowHUDHint(NSLOCTEXT("QuietRoad", "SaveFailed", "Не удалось сохранить прогресс"));
+				}
+			}
+		}
 	}
 }
 
@@ -92,6 +102,7 @@ void ARoadToWisdomMissionManager::SetObjectiveText()
 	case EQRRelayMissionStage::PullLever:      Objective = ObjectivePullLever; break;
 	case EQRRelayMissionStage::Completed:      Objective = ObjectiveCompleted; break;
 	}
+	CurrentObjective = Objective;
 
 	OnObjectiveChanged.Broadcast(Objective);
 	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))

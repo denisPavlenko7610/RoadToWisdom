@@ -21,6 +21,14 @@ void URoadToWisdomHUDWidget::NativeConstruct()
 	Root = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
 	WidgetTree->RootWidget = Root;
 
+	// Mode label: top left corner.
+	ModeText = MakeText(14, FLinearColor(0.7f, 0.75f, 0.8f));
+	UCanvasPanelSlot* ModeSlot = Root->AddChildToCanvas(ModeText);
+	ModeSlot->SetAnchors(FAnchors(0.f, 0.f, 0.f, 0.f));
+	ModeSlot->SetAlignment(FVector2D(0.f, 0.f));
+	ModeSlot->SetPosition(FVector2D(30.f, 30.f));
+	ModeSlot->SetAutoSize(true);
+
 	// Objective: top center.
 	ObjectiveText = MakeText(20, FLinearColor(0.95f, 0.92f, 0.8f));
 	UCanvasPanelSlot* ObjectiveSlot = Root->AddChildToCanvas(ObjectiveText);
@@ -67,6 +75,14 @@ UTextBlock* URoadToWisdomHUDWidget::MakeText(int32 FontSize, FLinearColor Color)
 	Text->SetShadowColorAndOpacity(FLinearColor::Black);
 	Text->SetVisibility(ESlateVisibility::HitTestInvisible);
 	return Text;
+}
+
+void URoadToWisdomHUDWidget::SetMode(const FText& Mode)
+{
+	if (ModeText)
+	{
+		ModeText->SetText(Mode);
+	}
 }
 
 void URoadToWisdomHUDWidget::SetObjective(const FText& Objective)

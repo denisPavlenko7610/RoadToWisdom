@@ -77,4 +77,15 @@ protected:
 	/** Walking speed; running/jumping are intentionally out of the first slice. */
 	UPROPERTY(EditAnywhere, Category = "QuietRoad|Movement", meta = (ClampMin = "0.0"))
 	float WalkSpeed = 300.f;
+
+	// Input actions resolved in the constructor (ConstructorHelpers is only legal there);
+	// SetupPlayerInputComponent binds these members.
+	UPROPERTY(EditDefaultsOnly, Category = "QuietRoad|Input")
+	TObjectPtr<UInputAction> MoveAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "QuietRoad|Input")
+	TObjectPtr<UInputAction> LookAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "QuietRoad|Input")
+	TObjectPtr<UInputAction> InteractAction;
 };
