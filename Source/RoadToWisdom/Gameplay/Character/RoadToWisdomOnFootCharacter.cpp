@@ -1,6 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "RoadToWisdomOnFootCharacter.h"
+#include "Gameplay/Character/RoadToWisdomOnFootCharacter.h"
 
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -12,8 +12,8 @@
 
 #include "UTInteractorComponent.h"
 #include "UTInventoryComponent.h"
-#include "../RoadToWisdomExplorerController.h"
-#include "../Missions/RoadToWisdomVanRadioPanel.h"
+#include "Gameplay/Player/RoadToWisdomExplorerController.h"
+#include "Gameplay/Vehicle/RoadToWisdomVanRadioPanel.h"
 
 ARoadToWisdomOnFootCharacter::ARoadToWisdomOnFootCharacter()
 {
@@ -42,7 +42,8 @@ ARoadToWisdomOnFootCharacter::ARoadToWisdomOnFootCharacter()
 
 	// UTInteraction: trace-based focus + prompts; input-agnostic, E is bound below.
 	Interactor = CreateDefaultSubobject<UUTInteractorComponent>(TEXT("Interactor"));
-	Interactor->InteractionDistance = 300.f;
+	Interactor->InteractionDistance = 650.f; // includes the 350 cm third-person camera boom
+	Interactor->ServerRangeValidationScale = 1.f;
 	// Tick is owned by the component itself: it enables it for local hold interactions.
 
 	// UTItems: mission items (e.g. the relay fuse) land here.

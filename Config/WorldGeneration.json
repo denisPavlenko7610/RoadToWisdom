@@ -1,0 +1,10 @@
+{
+  "Seed": 20261025,
+  "WorldSize": 4032,
+  "TerrainVariation": 1.0,
+  "RoadDensity": 1.0,
+  "POIDensity": 1.0,
+  "VegetationDensity": 1.0,
+  "RockDensity": 1.0,
+  "Map": "/Game/QuietRoadWorld/Maps/L_QuietRoad_OpenWorld"
+}

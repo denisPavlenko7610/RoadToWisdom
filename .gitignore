@@ -72,3 +72,7 @@ Config/User*.ini
 
 .DS_Store
 Thumbs.db
+
+# Python editor tool caches
+__pycache__/
+*.pyc

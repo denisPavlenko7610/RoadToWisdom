@@ -1,79 +1,91 @@
 {
-	"FileVersion": 3,
-	"EngineAssociation": "5.8",
-	"Category": "",
-	"Description": "",
-	"Modules": [
-		{
-			"Name": "RoadToWisdom",
-			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"AdditionalDependencies": [
-				"Engine",
-				"UMG"
-			]
-		}
-	],
-	"Plugins": [
-		{
-			"Name": "ChaosVehiclesPlugin",
-			"Enabled": true
-		},
-		{
-			"Name": "ModelingToolsEditorMode",
-			"Enabled": true,
-			"TargetAllowList": [
-				"Editor"
-			]
-		},
-		{
-			"Name": "GameInputWindows",
-			"Enabled": true,
-			"SupportedTargetPlatforms": [
-				"Win64"
-			],
-			"TargetDenyList": [
-				"Server"
-			]
-		},
-		{
-			"Name": "ModelContextProtocol",
-			"Enabled": true
-		},
-		{
-			"Name": "UTFoundation",
-			"Enabled": true
-		},
-		{
-			"Name": "UTInteraction",
-			"Enabled": true
-		},
-		{
-			"Name": "UTSave",
-			"Enabled": true
-		},
-		{
-			"Name": "UTItems",
-			"Enabled": true
-		},
-		{
-			"Name": "UTProgression",
-			"Enabled": true
-		},
-		{
-			"Name": "UTWorldMechanics",
-			"Enabled": true
-		},
-		{
-			"Name": "UTCombat",
-			"Enabled": true
-		},
-		{
-			"Name": "DataValidation",
-			"Enabled": true,
-			"TargetAllowList": [
-				"Editor"
-			]
-		}
-	]
+  "FileVersion": 3,
+  "EngineAssociation": "5.8",
+  "Category": "",
+  "Description": "",
+  "Modules": [
+    {
+      "Name": "RoadToWisdom",
+      "Type": "Runtime",
+      "LoadingPhase": "Default",
+      "AdditionalDependencies": [
+        "Engine",
+        "UMG"
+      ]
+    },
+    {
+      "Name": "RoadToWisdomEditor",
+      "Type": "Editor",
+      "LoadingPhase": "PostEngineInit"
+    }
+  ],
+  "Plugins": [
+    {
+      "Name": "ChaosVehiclesPlugin",
+      "Enabled": true
+    },
+    {
+      "Name": "ModelingToolsEditorMode",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
+    },
+    {
+      "Name": "GameInputWindows",
+      "Enabled": true,
+      "SupportedTargetPlatforms": [
+        "Win64"
+      ],
+      "TargetDenyList": [
+        "Server"
+      ]
+    },
+    {
+      "Name": "ModelContextProtocol",
+      "Enabled": true
+    },
+    {
+      "Name": "UTFoundation",
+      "Enabled": true
+    },
+    {
+      "Name": "UTInteraction",
+      "Enabled": true
+    },
+    {
+      "Name": "UTSave",
+      "Enabled": true
+    },
+    {
+      "Name": "UTItems",
+      "Enabled": true
+    },
+    {
+      "Name": "UTProgression",
+      "Enabled": true
+    },
+    {
+      "Name": "UTWorldMechanics",
+      "Enabled": true
+    },
+    {
+      "Name": "UTCombat",
+      "Enabled": true
+    },
+    {
+      "Name": "DataValidation",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
+    },
+    {
+      "Name": "EditorToolset",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
+    }
+  ]
 }

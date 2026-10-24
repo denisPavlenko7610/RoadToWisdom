@@ -14,6 +14,10 @@ Re-running replaces the previous decor (one cluster actor per run).
 import math
 import random
 import unreal
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from QuietRoadLayout import distance_to_road, road_y
 
 LES = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 EAS = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
@@ -25,9 +29,9 @@ SEED = 20261024
 AREA = unreal.Vector(24000, 25000, 0)   # X extent of the strip, Y full width
 AREA_MIN_Y = -12500                     # Y range centered on the road
 AREA_MAX_Y = 12500
-TREE_COUNT = 110
-BUSH_COUNT = 130
-ROCK_COUNT = 45
+TREE_COUNT = 280
+BUSH_COUNT = 220
+ROCK_COUNT = 65
 MIN_TREE_DIST = 450.0                   # cm between tree centers
 MIN_BUSH_DIST = 160.0
 
@@ -62,7 +66,7 @@ def load_first(paths):
 def transform_at(x, y, z, scale, yaw_deg=0.0, pitch_deg=0.0, roll_deg=0.0):
     t = unreal.Transform()
     t.translation = unreal.Vector(x, y, z)
-    t.rotation = unreal.Rotator(pitch_deg, yaw_deg, roll_deg).quaternion()
+    t.rotation = unreal.Rotator(pitch=pitch_deg, yaw=yaw_deg, roll=roll_deg).quaternion()
     t.scale3d = unreal.Vector(scale, scale, scale)
     return t
 
@@ -72,7 +76,7 @@ def in_rect(x, y, rect):
 
 
 def excluded(x, y):
-    return in_rect(x, y, ROAD_RECT) or in_rect(x, y, PAD_RECT) or in_rect(x, y, STATION_RECT)
+    return distance_to_road(x, y) < 1050.0 or in_rect(x, y, PAD_RECT) or in_rect(x, y, STATION_RECT)
 
 
 def make_parent_material(path="/Game/QuietRoad/Materials/M_M2_Tinted"):
@@ -124,7 +128,7 @@ def place_points(rng, count, min_dist, placed):
     while len(points) < count and attempts > 0:
         attempts -= 1
         x = rng.uniform(-800.0, AREA.x + 800.0)
-        y = rng.uniform(AREA_MIN_Y, AREA_MAX_Y)
+        y = (road_y(x) + rng.choice((-1, 1)) * rng.uniform(1100, 4300)) if rng.random() < 0.7 else rng.uniform(AREA_MIN_Y, AREA_MAX_Y)
         if excluded(x, y):
             continue
         if any((x - px) * (x - px) + (y - py) * (y - py) < min_dist * min_dist for px, py in placed):
@@ -188,18 +192,19 @@ def main():
     for slot, mat in ((0, "Trunk"), (1, "Pine"), (2, "Bush"), (3, "Rock")):
         components[slot].set_material(0, palette[mat])
 
+    components[1].set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
+    components[2].set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
     placed = []
     trees = place_points(rng, TREE_COUNT, MIN_TREE_DIST, placed)
     trunks, crowns = [], []
     for x, y in trees:
         s = rng.uniform(0.8, 1.4)
-        # Cylinder (h=200cm) scaled to 3z -> 600cm*? trunk half-height 300*s? keep:
-        # trunk scale z 3s makes it clearly taller than wide; crown cone (h=100cm)
-        # scaled 2.5s starts exactly at the trunk top.
-        trunks.append(transform_at(x, y, 150.0 * s, s, roll_deg=0.0))
-        trunks[-1].scale3d = unreal.Vector(0.55 * s, 0.55 * s, 1.5 * s)
-        crowns.append(transform_at(x, y, 300.0 * s + 125.0 * s, 2.5 * s,
-                                   yaw_deg=rng.uniform(0, 360)))
+        trunks.append(transform_at(x, y, 200.0*s, s))
+        trunks[-1].scale3d = unreal.Vector(0.42*s, 0.42*s, 4.0*s)
+        for z, width, height in ((400, 5.2, 5.0), (580, 4.3, 4.8), (755, 3.0, 4.0)):
+            crown = transform_at(x, y, z*s, s, yaw_deg=rng.uniform(0,360))
+            crown.scale3d = unreal.Vector(width*s, width*s, height*s)
+            crowns.append(crown)
     for slot, instances in ((0, trunks), (1, crowns)):
         cluster.set_instances(slot, instances) if hasattr(cluster, "set_instances") else \
             cluster.call_method("SetInstances", args=(slot, instances))
@@ -216,7 +221,7 @@ def main():
     cluster.set_instances(3, rock_tfs) if hasattr(cluster, "set_instances") else \
         cluster.call_method("SetInstances", args=(3, rock_tfs))
 
-    counts = {p: len(components[p].get_editor_property('per_instance_sm_data')) for p in components}
+    counts = {p: components[p].get_instance_count() for p in components}
     log(f"placed: trees={len(trees)} bushes={len(bushes)} rocks={len(rocks)} (seed {SEED}); serialized counts={counts}")
 
     # The earlier light-preset experiment left a dense fog in the saved map;
@@ -225,21 +230,24 @@ def main():
         if actor.get_actor_label() == "QR_Fog":
             fog = actor.get_component_by_class(unreal.ExponentialHeightFogComponent)
             if fog:
-                fog.set_editor_property("fog_density", 0.02)
+                fog.set_editor_property("fog_density", 0.008)
 
     if not LES.save_current_level():
         raise RuntimeError("save_current_level failed")
     unreal.EditorLoadingAndSavingUtils.save_dirty_packages(True, True)
     log("M2 decor saved")
     # Reload from disk and confirm the instances actually persisted.
-    LES.load_level("/Game/QuietRoad/Maps/L_QuietRoad_Prototype")
+    assert LES.load_level("/Engine/Maps/Entry")
+    assert LES.load_level(MAP_PATH)
     reloaded = find_cluster()
     if reloaded is None:
-        log("RELOAD CHECK: cluster MISSING after reload")
+        raise RuntimeError("cluster missing after reload")
     else:
         rcounts = {p: reloaded.get_editor_property(p).get_instance_count()
                    for p in ("TreeTrunks", "TreeCrowns", "Bushes", "Rocks")}
+        assert list(rcounts.values()) == [TREE_COUNT, TREE_COUNT*3, BUSH_COUNT, ROCK_COUNT], rcounts
         log(f"RELOAD CHECK counts={rcounts}")
 
 
-main()
+if __name__ == "__main__":
+    main()

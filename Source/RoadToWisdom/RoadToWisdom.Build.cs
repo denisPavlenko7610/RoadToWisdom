@@ -33,14 +33,7 @@ public class RoadToWisdom : ModuleRules
 			"UTWorldMechanicsRuntime"
 		});
 
-		PublicIncludePaths.AddRange(new string[] {
-			"RoadToWisdom",
-			"RoadToWisdom/SportsCar",
-			"RoadToWisdom/OffroadCar",
-			"RoadToWisdom/Variant_OffRoad",
-			"RoadToWisdom/Variant_TimeTrial",
-			"RoadToWisdom/Variant_TimeTrial/UI"
-		});
+		PublicIncludePaths.Add("RoadToWisdom");
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 		if (Target.bBuildEditor) PrivateDependencyModuleNames.Add("UnrealEd");
