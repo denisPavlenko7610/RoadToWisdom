@@ -85,3 +85,18 @@ here.
    GameMode not applying from ini — now bound in WorldSettings by the builder).
 4. PIE checklist: `Docs/TestingChecklist.md` — **manual-check-required** (needs a
    human in the editor; Unreal MCP server was not running during the session).
+
+## M1.4 verification � 2026-10-25
+
+`compiled`: UE 5.8.4 Editor Development, Saved/Logs/M14_Build.log.
+`editor-verified`: QuietRoad.Session.Persistence passed in five actual PIE sessions;
+report Saved/Automation/M14/index.json, log Saved/Logs/M14_Tests.log.
+Covers pre-pickup, full/range rejection, partial stack restoration, collected fuse,
+installed fuse, completed mission, missing Inventory section, enter/exit and on-foot IMC.
+Pickups section is now version 2 (remaining payloads plus collected IDs); older saves
+are rejected as a whole, with no automatic migration. The normal slot is preserved;
+-QuietRoadAutomation selects only QuietRoad_Automation for regression tests.
+UTSave's LoadFromSlot validates/replaces its in-memory object atomically; SaveToSlot
+uses engine SaveGameToSlot, with no extra power-loss-safe write guarantee. World-state
+application is sequential: this slice prevalidates the sole fuse-box schema and identity.
+Rendered driving, physical keyboard tap/hold, and art acceptance still require checks.

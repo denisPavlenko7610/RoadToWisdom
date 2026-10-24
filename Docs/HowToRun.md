@@ -75,3 +75,12 @@ Details: `Docs/AssetBudget.md`.
 English commit messages, one meaningful stage per commit, no history rewrites.
 `.gitignore` covers `Binaries/`, `Intermediate/`, `Saved/`, `DerivedDataCache/`,
 IDE files and `Plugins/UT*/`.
+
+## Focused save regression
+
+Run UnrealEditor-Cmd.exe RoadToWisdom.uproject -unattended -NullRHI
+-QuietRoadAutomation -ExecCmds="Automation RunTests QuietRoad.Session"
+-TestExit="Automation Test Queue Empty" -ReportExportPath="<project>/Saved/Automation/M14".
+Check exported test results (not just process exit). The test uses a separate slot.
+Pickups schema v2 deliberately rejects legacy saves; start a new game by moving the
+normal QuietRoad01.sav out of Saved/SaveGames before launching a fresh session.

@@ -35,9 +35,13 @@ public:
 	ARoadToWisdomExplorerController();
 
 	virtual void BeginPlay() override;
+
 	virtual void SetupInputComponent() override;
+
 	virtual void OnPossess(APawn* InPawn) override;
+
 	virtual void OnUnPossess() override;
+
 	virtual void Tick(float DeltaSeconds) override;
 
 	/** F handler for both control modes (exit while driving, enter while on foot). */
@@ -46,15 +50,23 @@ public:
 
 	/** Current control mode. */
 	UFUNCTION(BlueprintPure, Category = "QuietRoad")
-	bool IsDriving() const { return ControlMode == EQRControlMode::Driving; }
+	bool IsDriving() const
+	{
+		return ControlMode == EQRControlMode::Driving;
+	}
 
 	/** The placed/stored van pawn (null in template-only maps). */
 	UFUNCTION(BlueprintPure, Category = "QuietRoad")
-	ARoadToWisdomPawn* GetVanPawn() const { return VanPawn; }
+	ARoadToWisdomPawn* GetVanPawn() const
+	{
+		return VanPawn;
+	}
 
 	/** HUD passthroughs (HUD exists only for local players). */
 	void SetHUDObjective(const FText& Objective);
+
 	void SetHUDPrompt(const FText& Prompt);
+
 	void ShowHUDHint(const FText& Hint, float Seconds = 2.5f);
 
 protected:
@@ -174,4 +186,5 @@ protected:
 	FUTInventorySnapshot PendingInventory;
 
 	friend class URoadToWisdomSaveCoordinator;
+	friend class FQRSessionSmoke;
 };
