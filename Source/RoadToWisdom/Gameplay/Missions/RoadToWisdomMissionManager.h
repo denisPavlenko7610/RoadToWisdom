@@ -57,6 +57,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "QuietRoad|Mission")
 	EQRRelayMissionStage GetStage() const { return Stage; }
 
+	/** Last objective text published by SetObjectiveText (safe before any change). */
+	const FText& GetCurrentObjective() const { return CurrentObjective; }
+
 	/** Restore path used by the save coordinator; silently rebuilds stage state. */
 	void ApplyState(EQRRelayMissionStage InStage, bool bLeverWasOn);
 
@@ -106,6 +109,8 @@ protected:
 	FText CompletionMessage;
 
 	EQRRelayMissionStage Stage = EQRRelayMissionStage::WaitForArrival;
+
+	FText CurrentObjective;
 
 	FTimerHandle ArrivalTimer;
 

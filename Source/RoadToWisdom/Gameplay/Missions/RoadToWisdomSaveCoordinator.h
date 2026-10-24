@@ -73,8 +73,13 @@ class URoadToWisdomSaveCoordinator : public UGameInstanceSubsystem
 public:
 	static constexpr TCHAR SlotName[] = TEXT("QuietRoad01");
 
-	/** Capture mission stage, inventory, world state and placements; flush to slot. */
-	void SaveSession(ARoadToWisdomMissionManager* Mission);
+	/**
+	 * Capture mission stage, inventory, world state and placements, then flush to
+	 * the slot. Every section write and the world capture must succeed; a partial
+	 * snapshot is never flushed and never reported as success. Returns the real
+	 * outcome for UI.
+	 */
+	bool SaveSession(ARoadToWisdomMissionManager* Mission);
 
 	/**
 	 * Load the slot (if any) and rebuild: world saveables, inventory, vehicle and
@@ -89,5 +94,5 @@ protected:
 	FQRPlayerSection ReadPlayerSection();
 	bool ReadInventorySection(FUTInventorySnapshot& OutSnapshot);
 
-	void CaptureAndWriteSections(ARoadToWisdomMissionManager* Mission, ARoadToWisdomExplorerController* Controller);
+	bool CaptureAndWriteSections(ARoadToWisdomMissionManager* Mission, ARoadToWisdomExplorerController* Controller);
 };

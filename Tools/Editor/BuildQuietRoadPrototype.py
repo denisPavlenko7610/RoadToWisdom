@@ -214,6 +214,8 @@ def build_map():
     if van is None:
         raise RuntimeError("van spawn failed")
     van.set_actor_label("QR_Van")
+    # The controller's one-shot registration looks for exactly this tag.
+    van.set_editor_property("tags", [unreal.Name("QuietRoad.Van")])
 
     # -- Relay station at the end of the road ----------------------------------
     station = unreal.Vector(24000, 0, 0)

@@ -21,6 +21,14 @@ else:
         if found.get(cls, 0) < need:
             errors.append(f"missing {cls} (need {need}, have {found.get(cls, 0)})")
 
+    # Van registration contract: exactly one tagged vehicle pawn.
+    vans = [a for a in actors if any(str(t) == "QuietRoad.Van" for t in a.get_editor_property("tags"))]
+    out.append("tagged vans: %d" % len(vans))
+    if len(vans) != 1:
+        errors.append(f"expected exactly 1 tagged van, found {len(vans)}")
+    elif not vans[0].get_class().get_name().endswith("_C"):
+        errors.append("tagged van is not a Blueprint vehicle")
+
     # Mission wiring
     for a in actors:
         if a.get_class().get_name() == "RoadToWisdomMissionManager":

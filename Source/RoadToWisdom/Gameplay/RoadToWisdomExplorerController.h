@@ -83,6 +83,20 @@ protected:
 	/** Applies the deferred session restore on the first on-foot possession. */
 	void ApplyPendingSessionRestore();
 
+	/**
+	 * Finds the one tagged placed van in the world, once, independent of possession
+	 * (the game starts on foot, so OnPossess never sees the vehicle). Exactly one
+	 * match is the only accepted state; zero logs a warning, several log an error
+	 * and the first one wins.
+	 */
+	void RegisterVanFromWorld();
+
+	/** Pushes the mission manager's current objective (if any) into the HUD. */
+	void SyncHudFromMission();
+
+	/** Reflects the current control mode in the HUD (called on every switch). */
+	void UpdateHudMode();
+
 	// -- Configuration -------------------------------------------------------
 
 	/** On-foot pawn spawned on first exit and reused afterwards. */
@@ -101,9 +115,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "QuietRoad|Possession", meta = (ClampMin = "0.0"))
 	float EnterMaxDistance = 350.f;
 
+	/** Local offset (vehicle space) of the driver door used for the enter distance check. */
+	UPROPERTY(EditDefaultsOnly, Category = "QuietRoad|Possession")
+	FVector EnterProbeOffset = FVector(60.f, -110.f, 0.f);
+
 	/** Radius of the occupancy sphere tested at each exit candidate (cm). */
 	UPROPERTY(EditDefaultsOnly, Category = "QuietRoad|Possession", meta = (ClampMin = "0.0"))
 	float ExitSpotRadius = 45.f;
+
+	/** Tag marking the one persistent placed van in a map. */
+	UPROPERTY(EditDefaultsOnly, Category = "QuietRoad|Possession")
+	FName VanTag = TEXT("QuietRoad.Van");
 
 	/** Driving contexts: template vehicle IMC plus this project's F-exit context. */
 	UPROPERTY(EditDefaultsOnly, Category = "QuietRoad|Input")
@@ -139,6 +161,9 @@ protected:
 
 	/** Set once the session restore has run (success or fresh game). */
 	bool bSessionRestoreAttempted = false;
+
+	/** Set once the placed-van registration has run. */
+	bool bVanRegistrationAttempted = false;
 
 	/** Deferred restore payload (set by the save coordinator, applied on first possess). */
 	UPROPERTY(Transient)
