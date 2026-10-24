@@ -10,7 +10,7 @@ Measured with `python Tools/CheckAssetBudget.py` (2026-10-24, after M1 stabiliza
 | `Content/QuietRoad/` (slice content) | ~200 KB (input assets, item definition, map + M2 material palette) | — |
 | `Plugins/` (versioned) | **0 B** — UT plugins are junctions, gitignored | — |
 | Files > 50 MiB | none | none without explicit reason |
-| Git LFS | not used (nothing large enough yet) | re-evaluate before large packs |
+| Git LFS | not used (0 files, `.git` = 65 MB) | re-evaluate before large packs |
 
 ## Largest tracked files
 

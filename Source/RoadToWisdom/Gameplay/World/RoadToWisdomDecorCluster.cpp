@@ -43,16 +43,16 @@ void ARoadToWisdomDecorCluster::SetInstances(int32 Slot, const TArray<FTransform
 		return;
 	}
 
-	// Editor-time changes from scripts are only serialized when marked transactional.
-	// AddInstance feeds the transient render manager, which syncs PerInstanceSMData on
-	// a later editor tick; a headless script saves before that tick runs, so write the
-	// bulk-serialized array directly (UE 5.8: InstancedStaticMesh.cpp Serialize()).
+	// Official API only: both AddInstance and the batch AddInstances write straight
+	// into the bulk-serialized PerInstanceSMData (UE 5.8 InstancedStaticMesh.cpp),
+	// verified by a reload check after Save Level. The earlier direct-array write is
+	// unnecessary; the actual persistence bug was scripts editing a stale current
+	// world (now fixed by load_level in the generator).
 	Target->Modify();
-	Target->PerInstanceSMData.Reset(Instances.Num());
+	Target->ClearInstances();
 	for (const FTransform& Transform : Instances)
 	{
-		Target->PerInstanceSMData.Emplace(Transform.ToMatrixWithScale());
+		Target->AddInstance(Transform, true);
 	}
-	Target->MarkRenderStateDirty();
 	UE_LOG(LogRoadToWisdom, Log, TEXT("DecorCluster slot %d: %d instances written"), Slot, Target->GetNumInstances());
 }

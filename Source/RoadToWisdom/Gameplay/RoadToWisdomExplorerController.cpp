@@ -104,7 +104,10 @@ void ARoadToWisdomExplorerController::RegisterVanFromWorld()
 	}
 	if (Tagged.Num() > 1)
 	{
-		UE_LOG(LogRoadToWisdom, Error, TEXT("RegisterVanFromWorld: %d actors tagged '%s', exactly one expected. Using the first."), Tagged.Num(), *VanTag.ToString());
+		// Ambiguity blocks registration entirely (GDD v0.3 28.1): picking an arbitrary
+		// van would leave the radio/controller disagreeing about which actor is real.
+		UE_LOG(LogRoadToWisdom, Error, TEXT("RegisterVanFromWorld: %d actors tagged '%s', exactly one expected. Van stays unregistered; F enter/exit disabled until fixed."), Tagged.Num(), *VanTag.ToString());
+		return;
 	}
 
 	VanPawn = Cast<ARoadToWisdomPawn>(Tagged[0]);

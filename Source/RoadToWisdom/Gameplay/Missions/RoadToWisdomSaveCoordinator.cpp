@@ -10,6 +10,8 @@
 #include "../RoadToWisdomPawn.h"
 #include "../Character/RoadToWisdomOnFootCharacter.h"
 #include "RoadToWisdomMissionManager.h"
+#include "RoadToWisdomPlacedPickup.h"
+#include "EngineUtils.h"
 
 #include "UTSaveSubsystem.h"
 #include "UTWorldStateSubsystem.h"
@@ -19,6 +21,34 @@
 namespace
 {
 	constexpr int32 SectionVersion = 1;
+}
+
+void URoadToWisdomSaveCoordinator::NotifyPickupCollected(FName StableId)
+{
+	if (!StableId.IsNone() && !CollectedPickupIds.Contains(StableId))
+	{
+		CollectedPickupIds.Add(StableId);
+	}
+}
+
+void URoadToWisdomSaveCoordinator::DestroyCollectedPickups() const
+{
+	UWorld* World = GetGameInstance() ? GetGameInstance()->GetWorld() : nullptr;
+	if (!World || CollectedPickupIds.Num() == 0)
+	{
+		return;
+	}
+
+	TArray<ARoadToWisdomPlacedPickup*> Pickups;
+	ARoadToWisdomPlacedPickup::GetAllPlacedPickups(World, Pickups);
+	for (ARoadToWisdomPlacedPickup* Pickup : Pickups)
+	{
+		if (Pickup && CollectedPickupIds.Contains(Pickup->SaveStableId))
+		{
+			Pickup->Destroy();
+			UE_LOG(LogRoadToWisdom, Log, TEXT("Restore: removed collected pickup '%s'."), *Pickup->SaveStableId.ToString());
+		}
+	}
 }
 
 bool URoadToWisdomSaveCoordinator::SaveSession(ARoadToWisdomMissionManager* Mission)
@@ -105,6 +135,17 @@ bool URoadToWisdomSaveCoordinator::CaptureAndWriteSections(ARoadToWisdomMissionM
 		}
 	}
 
+	// Collected placed pickups (kept out of the world snapshot: AUTWorldItem has no
+	// save contract and destroys itself, so collection state lives here).
+	FQRPickupsSection PickupsSection;
+	PickupsSection.CollectedIds = CollectedPickupIds;
+	Result = Save->WriteSection(TEXT("Pickups"), SectionVersion, PickupsSection);
+	if (!Result.IsSuccess())
+	{
+		UE_LOG(LogRoadToWisdom, Error, TEXT("SaveSession: Pickups section: %s"), *Result.Message.ToString());
+		return false;
+	}
+
 	// Vehicle placement.
 	if (Controller->VanPawn)
 	{
@@ -165,6 +206,13 @@ bool URoadToWisdomSaveCoordinator::TryRestoreSession(ARoadToWisdomExplorerContro
 			UE_LOG(LogRoadToWisdom, Log, TEXT("RestoreSession: applied %d world-state entries."), Applied);
 		}
 	}
+
+	FQRPickupsSection PickupsSection;
+	if (Save->ReadSection(TEXT("Pickups"), SectionVersion, PickupsSection).IsSuccess())
+	{
+		CollectedPickupIds = PickupsSection.CollectedIds;
+	}
+	DestroyCollectedPickups();
 
 	bool bMissionFound = false;
 	const FQRMissionSection MissionSection = ReadMissionSection(bMissionFound);

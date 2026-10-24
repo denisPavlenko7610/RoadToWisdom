@@ -229,11 +229,17 @@ def build_map():
     radio.get_editor_property("PanelMesh").set_static_mesh(
         unreal.load_object(None, "/Engine/BasicShapes/Cube.Cube"))
     radio.get_editor_property("PanelMesh").set_world_scale3d((0.25, 0.55, 0.7))
+    radio_mat = unreal.EditorAssetLibrary.load_asset("/Game/QuietRoad/Materials/MI_M2_Rock")
+    if radio_mat:
+        radio.get_editor_property("PanelMesh").set_material(0, radio_mat)
 
     # -- Relay station at the end of the road ----------------------------------
     station = unreal.Vector(24000, 0, 0)
-    spawn_mesh("/Engine/BasicShapes/Cylinder.Cylinder", station + unreal.Vector(0, 600, 100), (2, 2, 4),
-               label="QR_RelayMast")
+    mast = spawn_mesh("/Engine/BasicShapes/Cylinder.Cylinder", station + unreal.Vector(0, 600, 100), (2, 2, 4),
+                      label="QR_RelayMast")
+    mast_mat = unreal.EditorAssetLibrary.load_asset("/Game/QuietRoad/Materials/MI_M2_Trunk")
+    if mast_mat:
+        mast.get_editor_property("static_mesh_component").set_material(0, mast_mat)
     fuse_box = spawn_class("/Script/RoadToWisdom.RoadToWisdomFuseBox",
                            station + unreal.Vector(0, 300, 100), unreal.Rotator(pitch=0, yaw=-90, roll=0),
                            label="QR_FuseBox")
@@ -249,9 +255,10 @@ def build_map():
     spawn_mesh("/Engine/BasicShapes/Cube.Cube", station + unreal.Vector(400, 300, 50), (1, 1, 1),
                label="QR_Crate")
 
-    world_item = spawn_class("/Script/UTInventoryRuntime.UTWorldItem",
+    world_item = spawn_class("/Script/RoadToWisdom.RoadToWisdomPlacedPickup",
                              station + unreal.Vector(400, 300, 130), unreal.Rotator(),
                              label="QR_FuseWorldItem")
+    world_item.set_editor_property("save_stable_id", unreal.Name("QuietRoad.Relay.Fuse01"))
     payload = unreal.UTItemPayload()
     payload.set_editor_property("unique", False)
     stack = unreal.UTItemStack()

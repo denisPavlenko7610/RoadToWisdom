@@ -15,7 +15,7 @@ else:
     out.append("actor classes: %s" % ", ".join(f"{k}={v}" for k, v in sorted(found.items())))
 
     for cls, need in [("BP_SportsCar_Pawn_C", 1), ("RoadToWisdomFuseBox", 1),
-                      ("UTLever", 1), ("UTWorldItem", 1), ("RoadToWisdomMissionManager", 1),
+                       ("RoadToWisdomMissionManager", 1),
                       ("PlayerStart", 1), ("DirectionalLight", 1), ("SkyLight", 1),
                       ("ExponentialHeightFog", 1)]:
         if found.get(cls, 0) < need:
@@ -37,6 +37,15 @@ else:
         errors.append("decor cluster has no instances (run GenerateM2Decor.py)")
     if found.get("SkyAtmosphere", 0) != 1:
         errors.append(f"expected 1 SkyAtmosphere, found {found.get('SkyAtmosphere', 0)}")
+
+    # Quest pickup uses the saveable placed-pickup subclass with a stable id
+    pickups = [a for a in actors if a.get_class().get_name() == "RoadToWisdomPlacedPickup"]
+    if len(pickups) != 1:
+        errors.append(f"expected 1 placed pickup, found {len(pickups)}")
+    elif str(pickups[0].get_editor_property("save_stable_id")) != "QuietRoad.Relay.Fuse01":
+        errors.append("placed pickup stable id is not QuietRoad.Relay.Fuse01")
+    if found.get("UTWorldItem", 0) != 0:
+        errors.append(f"raw UTWorldItem in map ({found.get('UTWorldItem', 0)}), use RoadToWisdomPlacedPickup")
 
     # Radio panel present (GDD 23.1)
     if found.get("RoadToWisdomVanRadioPanel", 0) != 1:
