@@ -29,6 +29,10 @@ else:
     elif not vans[0].get_class().get_name().endswith("_C"):
         errors.append("tagged van is not a Blueprint vehicle")
 
+    # Radio panel present (GDD 23.1)
+    if found.get("RoadToWisdomVanRadioPanel", 0) != 1:
+        errors.append(f"expected 1 van radio panel, found {found.get('RoadToWisdomVanRadioPanel', 0)}")
+
     # Mission wiring
     for a in actors:
         if a.get_class().get_name() == "RoadToWisdomMissionManager":

@@ -60,6 +60,10 @@ public:
 	/** Last objective text published by SetObjectiveText (safe before any change). */
 	const FText& GetCurrentObjective() const { return CurrentObjective; }
 
+	/** Short radio line for the van panel (GDD §23.1), stage-dependent. */
+	UFUNCTION(BlueprintPure, Category = "QuietRoad|Mission")
+	FText GetRadioMessage() const;
+
 	/** Restore path used by the save coordinator; silently rebuilds stage state. */
 	void ApplyState(EQRRelayMissionStage InStage, bool bLeverWasOn);
 
