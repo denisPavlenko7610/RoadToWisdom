@@ -2,7 +2,7 @@
 #include "UTHealthComponent.h"
 
 #include "Net/UnrealNetwork.h"
-#include "UTCombatMessages.h"
+#include "UTActorDiedMessage.h"
 #include "UTMessageBusSubsystem.h"
 #include "UTTags.h"
 

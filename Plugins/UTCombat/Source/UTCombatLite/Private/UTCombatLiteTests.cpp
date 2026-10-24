@@ -27,7 +27,7 @@ struct FGCRoot : public FGCObject
 
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
-#include "UTCombatMessages.h"
+#include "UTActorDiedMessage.h"
 #include "UTDamageContract.h"
 #include "UTDamageDispatch.h"
 #include "UTHealthComponent.h"

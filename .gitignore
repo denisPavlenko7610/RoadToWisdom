@@ -12,6 +12,11 @@ Plugins/*/Build/
 Plugins/*/Intermediate/
 Plugins/*/Saved/
 
+# UT domain plugins are NOT copied into this repo: Plugins/UT* are NTFS junctions
+# into the sibling UnrealTemplates repository (created by Tools/LinkToolkitPlugins.ps1),
+# so their sources must not be versioned here.
+Plugins/UT*/
+
 # Generated project files
 *.sln
 *.slnx
