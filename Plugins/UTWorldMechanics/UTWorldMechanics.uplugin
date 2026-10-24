@@ -1,0 +1,36 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "UT World Mechanics",
+	"Description": "World mechanics: doors, levers, pressure plates, triggers, teleporters, jump pads, moving platforms, checkpoints/respawn, pickup spawner, day-night cycle.",
+	"Category": "UTTemplates.WorldMechanics",
+	"CreatedBy": "Denis Pavlenko",
+	"CanContainContent": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "UTWorldMechanicsRuntime",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "UTFoundation",
+			"Enabled": true
+		},
+		{
+			"Name": "UTInteraction",
+			"Enabled": true
+		},
+		{
+			"Name": "UTCombat",
+			"Enabled": true
+		},
+		{
+			"Name": "UTSave",
+			"Enabled": true
+		}
+	]
+}

@@ -39,6 +39,41 @@
 		{
 			"Name": "ModelContextProtocol",
 			"Enabled": true
+		},
+		{
+			"Name": "UTFoundation",
+			"Enabled": true
+		},
+		{
+			"Name": "UTInteraction",
+			"Enabled": true
+		},
+		{
+			"Name": "UTSave",
+			"Enabled": true
+		},
+		{
+			"Name": "UTItems",
+			"Enabled": true
+		},
+		{
+			"Name": "UTProgression",
+			"Enabled": true
+		},
+		{
+			"Name": "UTWorldMechanics",
+			"Enabled": true
+		},
+		{
+			"Name": "UTCombat",
+			"Enabled": true
+		},
+		{
+			"Name": "DataValidation",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
 		}
 	]
 }
