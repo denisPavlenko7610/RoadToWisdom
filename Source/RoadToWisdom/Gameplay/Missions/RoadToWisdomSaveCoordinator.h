@@ -39,6 +39,16 @@ struct FQRVehicleSection
 	bool bValid = false;
 };
 
+/** Collected placed-pickup ids (GDD 12: quest items must not respawn on load). */
+USTRUCT()
+struct FQRPickupsSection
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FName> CollectedIds;
+};
+
 /** Player placement + control mode section. */
 USTRUCT()
 struct FQRPlayerSection
@@ -73,6 +83,12 @@ class URoadToWisdomSaveCoordinator : public UGameInstanceSubsystem
 public:
 	static constexpr TCHAR SlotName[] = TEXT("QuietRoad01");
 
+	/** Runtime record of a picked-up placed pickup (called by ARoadToWisdomPlacedPickup). */
+	void NotifyPickupCollected(FName StableId);
+
+	/** Restore-time sweep: destroys placed pickups whose ids were collected before the save. */
+	void DestroyCollectedPickups() const;
+
 	/**
 	 * Capture mission stage, inventory, world state and placements, then flush to
 	 * the slot. Every section write and the world capture must succeed; a partial
@@ -89,6 +105,10 @@ public:
 	bool TryRestoreSession(ARoadToWisdomExplorerController* Controller);
 
 protected:
+	/** Ids collected during this session (persisted via the Pickups section). */
+	UPROPERTY()
+	TArray<FName> CollectedPickupIds;
+
 	FQRMissionSection ReadMissionSection(bool& bOutFound);
 	FQRVehicleSection ReadVehicleSection();
 	FQRPlayerSection ReadPlayerSection();

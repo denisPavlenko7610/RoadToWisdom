@@ -17,6 +17,15 @@ Status vocabulary (per AGENTS.md): `implemented` → `compiled` → `editor-veri
 | Game-mode boot of the slice map | `-game -NullRHI -ExecCmds="quit"` on `L_QuietRoad_Prototype` | **editor-verified** — clean exit 0, no ensures/exceptions (after the UFUNCTION fix below) |
 | Content budget | `python Tools/CheckAssetBudget.py` | **passed** — 97.0 MiB / 250 MiB |
 
+## M1.3 regression gate (GDD v0.3 §28) — automated evidence
+
+| Gate | Evidence | Status |
+|---|---|---|
+| Van tag ambiguity blocks registration (no arbitrary pick) | `RegisterVanFromWorld`: >1 match → error log, VanPawn stays null, F disabled | **implemented + compiled**; live 2-van map test = manual |
+| Quest item cannot respawn after load | `ARoadToWisdomPlacedPickup` records its stable id into the save coordinator on pickup; "Pickups" section restores by destroying matching placed actors (REUSE_GUIDE: project persists collection state) | **implemented + compiled**; full pickup→save→load cycle = PIE manual |
+| Official HISM API | `SetInstances` uses `ClearInstances`/`AddInstance`; two same-seed generator runs → identical 110/110/130/45, reload check identical, no duplicates | **editor-verified** |
+| Real scene look | `-game` screenshots `M2_Start.png` (van+road+forest) and `M2_Relay.png` (mast, fuse box, lever, crate) in Saved/Screenshots/WindowsEditor | **editor-verified** |
+
 ## Bugs found and fixed by the automated runs
 
 - `ARoadToWisdomMissionManager::HandleFuseInstalled` / `HandleLeverSwitched` were not

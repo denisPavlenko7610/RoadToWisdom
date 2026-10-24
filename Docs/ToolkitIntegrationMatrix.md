@@ -62,6 +62,9 @@ here.
 - Game code declares only modules it actually calls (`Source/RoadToWisdom/RoadToWisdom.Build.cs`).
 - No file under `Plugins/UT*` may be modified; bugs go back to the UT repo.
 - World-state persistence goes through `IUTSaveable` + configured stable ids;
+  quest pickups persist through the game's "Pickups" section (`AUTWorldItem`
+  destroys itself on pickup and has no save contract — the REUSE_GUIDE ownership
+  table assigns collection persistence to the project);
   save orchestration (sections + world snapshot) lives in game code
   (`Source/RoadToWisdom/Gameplay/...`), matching the UT ownership table.
 - UT save/event contract: restore publishes no gameplay events; the loading
