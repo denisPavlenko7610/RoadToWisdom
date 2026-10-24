@@ -210,16 +210,21 @@ def build_map():
     if van_bp is None:
         raise RuntimeError("BP_SportsCar_Pawn not found")
     van = EAS.spawn_actor_from_class(van_bp.generated_class(),
-                                     unreal.Vector(0, 0, 120), unreal.Rotator(0, 90, 0))
+                                     unreal.Vector(0, 0, 120), unreal.Rotator(pitch=0, yaw=90, roll=0))
     if van is None:
         raise RuntimeError("van spawn failed")
     van.set_actor_label("QR_Van")
     # The controller's one-shot registration looks for exactly this tag.
     van.set_editor_property("tags", [unreal.Name("QuietRoad.Van")])
 
+    # -- Mass decor carrier (M2) and sky; instances come from GenerateM2Decor.py --
+    EAS.spawn_actor_from_class(unreal.load_class(None, "/Script/RoadToWisdom.RoadToWisdomDecorCluster"),
+                               unreal.Vector(0, 0, 0), unreal.Rotator()).set_actor_label("QR_DecorCluster")
+    EAS.spawn_actor_from_class(unreal.SkyAtmosphere, unreal.Vector(0, 0, 0)).set_actor_label("QR_SkyAtmosphere")
+
     # -- Radio panel of the van (GDD 23.1), next to the driver door -------------
     radio = spawn_class("/Script/RoadToWisdom.RoadToWisdomVanRadioPanel",
-                        unreal.Vector(160, 60, 95), unreal.Rotator(0, 90, 0),
+                        unreal.Vector(160, 60, 95), unreal.Rotator(pitch=0, yaw=90, roll=0),
                         label="QR_VanRadio")
     radio.get_editor_property("PanelMesh").set_static_mesh(
         unreal.load_object(None, "/Engine/BasicShapes/Cube.Cube"))
@@ -230,14 +235,14 @@ def build_map():
     spawn_mesh("/Engine/BasicShapes/Cylinder.Cylinder", station + unreal.Vector(0, 600, 100), (2, 2, 4),
                label="QR_RelayMast")
     fuse_box = spawn_class("/Script/RoadToWisdom.RoadToWisdomFuseBox",
-                           station + unreal.Vector(0, 300, 100), unreal.Rotator(0, -90, 0),
+                           station + unreal.Vector(0, 300, 100), unreal.Rotator(pitch=0, yaw=-90, roll=0),
                            label="QR_FuseBox")
     fuse_box.get_editor_property("BoxMesh").set_static_mesh(
         unreal.load_object(None, "/Engine/BasicShapes/Cube.Cube"))
     fuse_box.get_editor_property("BoxMesh").set_world_scale3d((0.8, 0.5, 1.2))
 
     lever = spawn_class("/Script/UTWorldMechanicsRuntime.UTLever",
-                        station + unreal.Vector(0, -100, 90), unreal.Rotator(0, -90, 0),
+                        station + unreal.Vector(0, -100, 90), unreal.Rotator(pitch=0, yaw=-90, roll=0),
                         label="QR_Lever")
 
     # Crate with the fuse world item next to the mast.
@@ -264,14 +269,19 @@ def build_map():
     mission.set_editor_property("arrive_radius", 2000.0)
 
     # -- Spawn point and atmosphere ---------------------------------------------
-    spawn_class("/Script/Engine.PlayerStart", unreal.Vector(300, 500, 100), unreal.Rotator(0, -90, 0),
+    spawn_class("/Script/Engine.PlayerStart", unreal.Vector(300, 500, 100), unreal.Rotator(pitch=0, yaw=-90, roll=0),
                 label="QR_PlayerStart")
 
     sun = EAS.spawn_actor_from_class(unreal.DirectionalLight, unreal.Vector(0, 0, 2000))
     sun.set_actor_label("QR_Sun")
-    sun.set_actor_rotation(unreal.Rotator(-22, -35, 0), False)
+    sun.set_actor_rotation(unreal.Rotator(pitch=-22, yaw=-35, roll=0), False)
     EAS.spawn_actor_from_class(unreal.SkyLight, unreal.Vector(0, 0, 3000)).set_actor_label("QR_SkyLight")
     EAS.spawn_actor_from_class(unreal.ExponentialHeightFog, unreal.Vector(0, 0, 0)).set_actor_label("QR_Fog")
+
+    # Bind the slice GameMode in WorldSettings itself (ini overrides proved flaky).
+    ws = unreal.GameplayStatics.get_actor_of_class(unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world(), unreal.WorldSettings)
+    if ws:
+        ws.set_editor_property("default_game_mode", unreal.load_class(None, "/Script/RoadToWisdom.RoadToWisdomQuietRoadGameMode"))
 
     if not LES.save_current_level():
         raise RuntimeError("save_current_level failed")

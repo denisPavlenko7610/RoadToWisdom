@@ -29,6 +29,15 @@ else:
     elif not vans[0].get_class().get_name().endswith("_C"):
         errors.append("tagged van is not a Blueprint vehicle")
 
+    # M2 visual reference prerequisites
+    cluster = [a for a in actors if a.get_class().get_name() == "RoadToWisdomDecorCluster"]
+    if len(cluster) != 1:
+        errors.append(f"expected 1 decor cluster, found {len(cluster)}")
+    elif cluster[0].get_editor_property("TreeTrunks").get_instance_count() == 0:
+        errors.append("decor cluster has no instances (run GenerateM2Decor.py)")
+    if found.get("SkyAtmosphere", 0) != 1:
+        errors.append(f"expected 1 SkyAtmosphere, found {found.get('SkyAtmosphere', 0)}")
+
     # Radio panel present (GDD 23.1)
     if found.get("RoadToWisdomVanRadioPanel", 0) != 1:
         errors.append(f"expected 1 van radio panel, found {found.get('RoadToWisdomVanRadioPanel', 0)}")
