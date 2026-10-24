@@ -1,6 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "RoadToWisdomHUDWidget.h"
+#include "Gameplay/UI/RoadToWisdomHUDWidget.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"

@@ -111,8 +111,8 @@ def make_mapping_contexts(actions):
     on_foot.set_editor_property("mappings", [
         make_mapping(actions["IA_QR_Move"], "W", [swizzle(swizzle_enum.YXZ)]),
         make_mapping(actions["IA_QR_Move"], "S", [swizzle(swizzle_enum.YXZ), negate(y=True)]),
-        make_mapping(actions["IA_QR_Move"], "A", [swizzle(swizzle_enum.ZXY), negate(z=True)]),
-        make_mapping(actions["IA_QR_Move"], "D", [swizzle(swizzle_enum.ZXY)]),
+        make_mapping(actions["IA_QR_Move"], "A", [negate(x=True)]),
+        make_mapping(actions["IA_QR_Move"], "D"),
         make_mapping(actions["IA_QR_Look"], "Mouse2D"),
         make_mapping(actions["IA_QR_Interact"], "E"),
         make_mapping(actions["IA_QR_ToggleVehicle"], "F"),
@@ -179,7 +179,7 @@ def remove_previous_build():
         if label.startswith("QR_") or actor.get_class().get_name() in {
             "PlayerStart", "DirectionalLight", "SkyLight", "ExponentialHeightFog",
             "RoadToWisdomMissionManager", "RoadToWisdomFuseBox", "UTLever", "UTWorldItem",
-            "BP_SportsCar_Pawn_C",
+            "BP_OffroadCar_Pawn_C",
         }:
             EAS.destroy_actor(actor)
     log("previous build cleared")
@@ -205,10 +205,10 @@ def build_map():
     spawn_mesh("/Engine/BasicShapes/Plane.Plane", unreal.Vector(0, 0, 6), (24, 24, 1),
                label="QR_StartPad")
 
-    # -- The van (template sports car as the temporary camper stand-in) --------
-    van_bp = unreal.load_object(None, "/Game/VehicleTemplate/Blueprints/SportsCar/BP_SportsCar_Pawn.BP_SportsCar_Pawn")
+    # -- The van (template offroad as the temporary camper stand-in) --------
+    van_bp = unreal.load_object(None, "/Game/VehicleTemplate/Blueprints/OffroadCar/BP_OffroadCar_Pawn.BP_OffroadCar_Pawn")
     if van_bp is None:
-        raise RuntimeError("BP_SportsCar_Pawn not found")
+        raise RuntimeError("BP_OffroadCar_Pawn not found")
     van = EAS.spawn_actor_from_class(van_bp.generated_class(),
                                      unreal.Vector(0, 0, 120), unreal.Rotator(pitch=0, yaw=90, roll=0))
     if van is None:

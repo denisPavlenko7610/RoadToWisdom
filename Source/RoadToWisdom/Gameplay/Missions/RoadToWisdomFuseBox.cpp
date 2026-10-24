@@ -1,6 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "RoadToWisdomFuseBox.h"
+#include "Gameplay/Missions/RoadToWisdomFuseBox.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Net/UnrealNetwork.h"

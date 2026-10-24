@@ -1,40 +1,9 @@
-# Asset Budget — RoadToWisdom
+# Asset budget
 
-Measured with `python Tools/CheckAssetBudget.py` (2026-10-24, after M1 stabilization + M2 visual reference).
+Current policy: ordinary Git, no LFS, every file <100 MiB; 50 MiB is a warning threshold. Earlier aggregate 250/500 MiB goals are superseded by the approved large-world task and already imported Fab pack.
 
-## Totals
+Measured 2026-10-25 with `python Tools/CheckAssetBudget.py --json` (includes pending source assets): Content 631.78 MiB; tracked source files 585.70 MiB before staging; all tracked/pending source files 632.26 MiB; .git 535.40 MiB before the world commit. No file reaches 50 MiB or 100 MiB. No LFS filter attributes. Largest file is existing Vehicle Template Offroad External Actor 16.25 MiB; largest Fab texture 12.45 MiB. Actual totals may increase slightly when documentation/screenshots are staged.
 
-| Metric | Value | Target |
-|---|---|---|
-| Tracked game content (git ls-files, Content/Config/Source/Docs/Tools) | **97.3 MiB**, 341 files | ≤ 250 MiB (first slice), ≤ 500 MiB extended |
-| `Content/QuietRoad/` (slice content) | ~200 KB (input assets, item definition, map + M2 material palette) | — |
-| `Plugins/` (versioned) | **0 B** — UT plugins are junctions, gitignored | — |
-| Files > 50 MiB | none | none without explicit reason |
-| Git LFS | not used (0 files, `.git` = 65 MB) | re-evaluate before large packs |
+Fab audit: 242 files / 486.1 MiB, 76 static meshes, 7 Blueprints, 6 materials, 46 material instances, 101 textures, 2 maps. Original content is preserved; the new world references buildings/shrub/sand textures and uses project-owned collision derivatives. World Partition external packages keep Landscape data split across small source assets.
 
-## Largest tracked files
-
-1. `Content/__ExternalActors__/Variant_OffRoad/Maps/Lvl_Offroad/B/9M/…uasset` — 16.25 MiB (template offroad map external actor)
-2. `Content/Vehicles/OffroadCar/SKM_Offroad.uasset` — 8.49 MiB
-3. `Content/Vehicles/OffroadCar/SM_Offroad_Body.uasset` — 2.70 MiB
-4. Many 2.2–2.4 MiB offroad-map external actors.
-
-The template Offroad variant (`Content/Variant_OffRoad/` + `Content/__ExternalActors__/Variant_OffRoad/`)
-and `Content/Vehicles/OffroadCar/` are the bulk of the budget. If the budget gets tight,
-deleting the unused Offroad variant (map + external actors) is the single biggest lever
-(~40+ MiB) — but only after the template regression checks no longer need it.
-
-## Known data issue (pre-existing, needs user decision)
-
-4 tracked files are missing on disk — `Content/__ExternalActors__/VehicleTemplate/Maps/VehicleBasic/`
-(4 hashed `.uasset`s, committed in the initial commit). Either restore them
-(`git checkout -- Content/__ExternalActors__/VehicleTemplate/`) or confirm deletion and
-commit it. Until then `CheckAssetBudget.py` prints a warning.
-
-## Rules in force
-
-- Run `python Tools/CheckAssetBudget.py` before large content commits (fails on budget
-  breach or any file > 50 MiB).
-- No Marketplace/Fab packs, Megascans or 4K/8K texture imports without an explicit
-  reason and a matrix update.
-- Frequent re-saving of `.umap` grows history; keep map edits batched.
+Do not add Saved/Intermediate/Binaries/DDC. Main map, own meshes/materials and required External Actors/Objects must be tracked. Keep package licensing restrictions and repository access in mind; do not publish raw Fab assets for unrestricted standalone distribution.

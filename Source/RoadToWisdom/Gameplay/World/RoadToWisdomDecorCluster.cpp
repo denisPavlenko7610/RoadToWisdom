@@ -1,6 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "RoadToWisdomDecorCluster.h"
+#include "Gameplay/World/RoadToWisdomDecorCluster.h"
 
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "RoadToWisdom.h"

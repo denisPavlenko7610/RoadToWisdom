@@ -1,15 +1,16 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "RoadToWisdomMissionManager.h"
+#include "Gameplay/Missions/RoadToWisdomMissionManager.h"
 
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
 #include "RoadToWisdom.h"
+#include "VehicleTemplate/Core/RoadToWisdomPawn.h"
 
-#include "../RoadToWisdomExplorerController.h"
-#include "RoadToWisdomFuseBox.h"
-#include "RoadToWisdomSaveCoordinator.h"
+#include "Gameplay/Player/RoadToWisdomExplorerController.h"
+#include "Gameplay/Missions/RoadToWisdomFuseBox.h"
+#include "Gameplay/Save/RoadToWisdomSaveCoordinator.h"
 
 #include "UTLever.h"
 
@@ -85,6 +86,15 @@ void ARoadToWisdomMissionManager::AdvanceStage()
 		OnMissionCompleted.Broadcast();
 	}
 
+	// Arrival can occur while driving. Persist at the safe exit event instead of
+	// reporting an expected moving-vehicle refusal as a disk failure.
+	if (auto* Explorer = Cast<ARoadToWisdomExplorerController>(UGameplayStatics::GetPlayerController(this, 0)))
+	{
+		if (Explorer->GetVanPawn() && Explorer->GetVanPawn()->GetVelocity().Size() > 50.f)
+		{
+			return;
+		}
+	}
 	// Persist after every committed advance so reloads cannot replay a step.
 	if (URoadToWisdomSaveCoordinator* Coordinator = GetGameInstance()->GetSubsystem<URoadToWisdomSaveCoordinator>()) {
 		if (!Coordinator->SaveSession(this)) {
@@ -111,6 +121,7 @@ void ARoadToWisdomMissionManager::SetObjectiveText()
 		case EQRRelayMissionStage::Completed: Objective = ObjectiveCompleted;
 			break;
 	}
+	if (Lever) Lever->bUsable = Stage == EQRRelayMissionStage::PullLever;
 	CurrentObjective = Objective;
 
 	OnObjectiveChanged.Broadcast(Objective);
@@ -160,7 +171,7 @@ void ARoadToWisdomMissionManager::ApplyState(EQRRelayMissionStage InStage, bool 
 	// OnSwitched, but HandleLeverSwitched is stage-guarded and no-ops after a restore.
 	if (Lever) {
 		Lever->bIsOn = bLeverWasOn;
-		Lever->OnRep_IsOn(); // presentation only; no gameplay event during restore
+		if (Lever->HandleMesh) Lever->HandleMesh->SetRelativeRotation(bLeverWasOn ? Lever->HandleOnRotation : FRotator::ZeroRotator);
 	}
 
 	SetObjectiveText();

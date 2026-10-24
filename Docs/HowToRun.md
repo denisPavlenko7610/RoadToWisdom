@@ -1,86 +1,72 @@
-# How To Run — RoadToWisdom / Quiet Road
+# How to run RoadToWisdom
 
-Environment used for all verification in this repo: **UE 5.8.4** at
-`C:\Program Files\Epic Games\U_5.8\UE_5.8`, Windows, Visual Studio toolchain.
+UE 5.8.4: `C:\Program Files\Epic Games\U_5.8\UE_5.8`.
 
-## 0. One-time setup after a fresh clone
+## Setup and build
+
+Restore Toolkit junctions after cloning:
 
 ```powershell
-# Recreate Plugins/UT* junctions into ..\..\UnrealTemplates (idempotent)
 powershell -NoProfile -ExecutionPolicy Bypass -File Tools/LinkToolkitPlugins.ps1
+& "C:\Program Files\Epic Games\U_5.8\UE_5.8\Engine\Build\BatchFiles\Build.bat" RoadToWisdomEditor Win64 Development "-project=$PWD\RoadToWisdom.uproject" -WaitMutex
 ```
 
-The UT plugins are **not** stored in this repository; `Plugins/UT*` are NTFS junctions
-into the sibling `UnrealTemplates` repo. If that repo lives elsewhere:
-`-ToolkitRoot 'D:\path\UnrealTemplates\Plugins'`.
+Build with the Editor closed. The editor target includes RoadToWisdomEditor, a small editor-only native Landscape/spline/HISM bridge. No runtime world generation.
 
-## 1. Build (C++ editor target)
+## Open and explore
 
-```bat
-"C:\Program Files\Epic Games\U_5.8\UE_5.8\Engine\Build\BatchFiles\Build.bat" ^
-  RoadToWisdomEditor Win64 Development ^
-  -project="C:\_DiskE\Projects\Unreal\RoadToWisdom\RoadToWisdom.uproject" -WaitMutex
+Open RoadToWisdom.uproject. EditorStartupMap and GameDefaultMap point to `/Game/QuietRoadWorld/Maps/L_QuietRoad_OpenWorld`. The level uses the existing BP_VehicleAdvGameMode with BP_OffroadCar_Pawn as temporary transport; it contains no permanent vehicle or mission actors. SportsCar assets/classes were explicitly retired; shared materials were moved to Vehicles/Shared. VehicleStart marks the future van position. World Partition cells can be loaded using its editor panel; PIE streams around the pawn.
+
+The old L_QuietRoad_Prototype map was deleted on request. Vehicle Template and original Fab maps remain for reference. Earlier gameplay tests/tools naming that prototype are legacy, not acceptance tests for this new map.
+
+## Generate World
+
+Edit `Config/WorldGeneration.json`. Settings: Seed, WorldSize (1008 / 2016 / 4032 m), TerrainVariation, RoadDensity, POIDensity, VegetationDensity, RockDensity. Defaults produce a 4032 m region.
+
+Host Python needs numpy (preparation only):
+
+```powershell
+python -m pip install numpy
+python Tools/World/PrepareWorld.py
 ```
 
-Or open `RoadToWisdom.uproject` (the IDE sln/slnx files are gitignored; regenerate
-with "Generate Visual Studio project files" or just let the launcher open it).
+**Do not generate Landscape with -NullRHI.** Native Landscape proxy splitting copies height textures through the rendering interface; a no-RHI run can retain valid collision while saving blank rendered heightmaps. VerifyWorld now checks rendered bounds as well as collision.
 
-## 2. Open and play
+Then use the running editor's Python console (or MCP/Rider execute Python):
 
-- Editor: open `RoadToWisdom.uproject`, load `/Game/QuietRoad/Maps/L_QuietRoad_Prototype`, press Play.
-  The map's GameMode is bound via `GameModeMapOverrides` in `DefaultEngine.ini`
-  (`RoadToWisdomQuietRoadGameMode`): you start on foot near the parked van.
-- Standalone game smoke (headless, used by automation):
-  ```bat
-  UnrealEditor-Cmd.exe RoadToWisdom.uproject /Game/QuietRoad/Maps/L_QuietRoad_Prototype -game -NullRHI -ExecCmds="quit"
-  ```
-
-## 3. What is automated vs manual
-
-Automated (headless editor, full editor boot via `UnrealEditor-Cmd -ExecutePythonScript`):
-
-- `Tools/Editor/BuildQuietRoadPrototype.py` — input actions, mapping contexts, the
-  `Item.Fuse` data asset, the whole prototype map (idempotent), the WorldSettings
-  GameMode binding and the M2 decor cluster carrier.
-- `Tools/Editor/GenerateM2Decor.py` — deterministic M2 decor (seed/density/exclusions)
-  into the map's HISM cluster + tinted material palette. Explicitly loads the target
-  map first: the editor silently restores a different current world otherwise.
-- `Tools/Editor/SetMapGameMode.py`, `Tools/Editor/TakeM2Screenshot.py` — helpers;
-  for real screenshots run the game windowed with `-ExecCmds="HighResShot 1400x800"`.
-- `Tools/Editor/VerifyPrototype.py` — loads the map, checks the actor set, mission
-  references, the fuse world item payload, input assets, the decor cluster instance
-  counts and SkyAtmosphere; prints `[VERIFY-RESULT] PASSED/FAILED`.
-
-
-Manual (needs a human in the editor):
-
-- PIE playthrough of the mission loop (drive → exit → fuse → lever → return) —
-  see `Docs/TestingChecklist.md`.
-- Unreal MCP: the editor plugin starts an HTTP MCP server at
-  `http://127.0.0.1:8000/mcp` (settings in `DefaultEditorPerProjectUserSettings.ini`;
-  project-root `.mcp.json` registers the server for MCP clients). It is only up while
-  the editor is running.
-
-## 4. Content budget
-
-```bat
-python Tools/CheckAssetBudget.py
+```python
+import runpy, unreal
+root = unreal.Paths.project_dir()
+runpy.run_path(root + "Tools/World/GenerateWorld.py")["main"]()
 ```
 
-Fails when tracked content exceeds 250 MiB or any single file exceeds 50 MiB.
-Details: `Docs/AssetBudget.md`.
+This creates/saves the Landscape, roads, buildings, HISM and External Actors. It removes only Actor tagged QRWorld.Generated. Untagged hand-authored Actor survive. Regenerate only one category with `main("POI")`, `main("Roads")`, `main("Vegetation")`, `main("Rocks")`, `main("Terrain")` or `main("Lighting")`. Change terrain/road settings together using full generation, because their masks depend on each other. Arbitrary rectangle regeneration is not implemented.
 
-## 5. Commit / git conventions
+Pilot: prepare with `python Tools/World/PrepareWorld.py --size 1008`, then run generation. Pilot map is L_QuietRoad_WorldPilot. Re-run preparation without override to return to the main map manifest. Saved/WorldGeneration contains temporary manifests, never required cooked assets.
 
-English commit messages, one meaningful stage per commit, no history rewrites.
-`.gitignore` covers `Binaries/`, `Intermediate/`, `Saved/`, `DerivedDataCache/`,
-IDE files and `Plugins/UT*/`.
+## Landscape appearance
 
-## Focused save regression
+Edit `/Game/QuietRoadWorld/Materials/MI_RegionLandscape`: TileSize (cm), BroadTileSize, DetailMix, MacroTileSize, MacroTintStrength, DistanceStart, DistanceBlendLength, RockTint, RockSlopeStart/Strength, Roughness, NormalStrength. Parent M_RegionGround is project-owned; source Fab textures/materials are unchanged. Fine normals fade with distance. Shader graph creation is in `Tools/World/LandscapeMaterial.py`; `build(True)` intentionally rebuilds it, ordinary world regeneration preserves material-instance tuning.
 
-Run UnrealEditor-Cmd.exe RoadToWisdom.uproject -unattended -NullRHI
--QuietRoadAutomation -ExecCmds="Automation RunTests QuietRoad.Session"
--TestExit="Automation Test Queue Empty" -ReportExportPath="<project>/Saved/Automation/M14".
-Check exported test results (not just process exit). The test uses a separate slot.
-Pickups schema v2 deliberately rejects legacy saves; start a new game by moving the
-normal QuietRoad01.sav out of Saved/SaveGames before launching a fresh session.
+## Scene organization
+
+Generated/Terrain, Generated/Roads/<route>, Generated/POI/<settlement>, Generated/Nature/Vegetation/<type>, Generated/Nature/Rocks/<type>, Generated/Atmosphere. Start markers belong to Manual/Starts. System actors belong to World/System. Do not give manual gameplay Actor QRWorld.Generated tags.
+
+## Verification and screenshots
+
+```python
+runpy.run_path(root + "Tools/World/VerifyWorld.py")["main"]()
+runpy.run_path(root + "Tools/World/CaptureWorld.py")
+```
+
+VerifyWorld checks actual loaded Landscape collision, sample road contact, camper envelope clearance, building overlaps/foundations, instance counts, unique labels and VehicleStart. It records evidence in Saved/WorldGeneration. CaptureWorld uses a nonblocking editor tick callback for six real HighResShot views; leave the editor running until Screenshots.json appears.
+
+Programmatic surface/envelope checks and PIE streaming do not prove Chaos suspension/driving or foreground FPS. Full vehicle drive and Standalone profiling remain manual checks. No temporary vehicle is saved into the level.
+
+## MCP
+
+Engine ModelContextProtocol and EditorToolset are enabled, HTTP endpoint `http://127.0.0.1:8000/mcp`. Config is in .mcp.json and .codex/config.toml. Editor must be running. Diagnose native tools with `python Tools/Editor/UnrealMcp.py list`. RiderLink can execute editor Python. Never claim editor verification when the editor is down.
+
+## Git
+
+No Git LFS. Every source asset must be below 100 MiB, preferably below 50 MiB. Run `python Tools/CheckAssetBudget.py`; it includes pending assets and checks Git attributes. Commit maps together with Content/__ExternalActors__ and Content/__ExternalObjects__. Saved, Binaries, Intermediate and DerivedDataCache stay ignored.

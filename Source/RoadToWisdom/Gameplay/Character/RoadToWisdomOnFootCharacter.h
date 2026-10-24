@@ -104,4 +104,5 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "QuietRoad|Input")
 	TObjectPtr<UInputAction> InteractAction;
+	friend class FQRRadioSmoke;
 };
