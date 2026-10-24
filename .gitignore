@@ -1,0 +1,69 @@
+# ================= Unreal Engine =================
+
+# Generated / cache directories
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+Packaged/
+Plugins/*/Binaries/
+Plugins/*/Build/
+Plugins/*/Intermediate/
+Plugins/*/Saved/
+
+# Generated project files
+*.sln
+*.slnx
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.xcodeproj
+*.xcworkspace
+
+# Visual Studio
+.vs/
+
+# Compiled object files
+*.o
+*.obj
+*.gch
+*.pch
+
+# Compiled dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Executables
+*.exe
+*.out
+*.app
+*.ipa
+
+# Precompiled assets
+SourceArt/**/*.png
+SourceArt/**/*.tga
+
+# User-specific config (keep Default*.ini versioned)
+Config/User*.ini
+!Config/Default*.ini
+
+# ================= JetBrains Rider =================
+
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ================= VS Code =================
+
+.vscode/
+*.code-workspace
+
+# ================= OS junk =================
+
+.DS_Store
+Thumbs.db
