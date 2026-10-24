@@ -15,6 +15,9 @@ scene is rebuilt, and asset creation is skipped when the asset already exists.
 
 import unreal
 
+LES = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+EAS = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+
 INPUT_ACTIONS = "/Game/QuietRoad/Input/Actions"
 IMC_PATH = "/Game/QuietRoad/Input"
 DATA_PATH = "/Game/QuietRoad/Data"
@@ -29,16 +32,19 @@ def log(msg):
 # Asset helpers
 # ---------------------------------------------------------------------------
 
-def create_asset_if_missing(name, package_path, asset_class, factory):
+def create_asset_if_missing(name, package_path, asset_class, factory=None):
     asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
-    existing = unreal.EditorAssetLibrary.does_asset_exist(f"{package_path}/{name}")
-    if existing:
-        log(f"asset exists, reusing: {package_path}/{name}")
-        return unreal.EditorAssetLibrary.load_asset(f"{package_path}/{name}")
+    package = f"{package_path}/{name}"
+    if unreal.EditorAssetLibrary.does_asset_exist(package):
+        log(f"asset exists, reusing: {package}")
+        return unreal.EditorAssetLibrary.load_asset(package)
+    if factory is None:
+        factory = unreal.DataAssetFactory()
+        factory.set_editor_property("data_asset_class", asset_class)
     asset = asset_tools.create_asset(name, package_path, asset_class, factory)
     if asset is None:
-        raise RuntimeError(f"failed to create asset {package_path}/{name}")
-    log(f"created asset: {package_path}/{name}")
+        raise RuntimeError(f"failed to create asset {package}")
+    log(f"created asset: {package}")
     return asset
 
 
@@ -51,7 +57,7 @@ def make_input_actions():
     ]
     actions = {}
     for name, value_type in specs:
-        ia = create_asset_if_missing(name, INPUT_ACTIONS, unreal.InputAction, unreal.InputActionFactory())
+        ia = create_asset_if_missing(name, INPUT_ACTIONS, unreal.InputAction, unreal.InputAction_Factory())
         ia.set_editor_property("value_type", value_type)
         actions[name] = ia
     unreal.EditorAssetLibrary.save_directory(INPUT_ACTIONS, only_if_is_dirty=False)
@@ -59,17 +65,29 @@ def make_input_actions():
 
 
 def key(name):
-    return unreal.Key(unreal.Name(name))
+    # FKey has no UPROPERTYs and its python constructor takes no arguments in 5.8;
+    # the only supported construction path is struct ImportText.
+    for text in (name, "Key=" + name):
+        k = unreal.Key()
+        try:
+            k.import_text(text)
+        except Exception:
+            continue
+        if k.export_text() not in ("", "None", "Invalid"):
+            return k
+    raise RuntimeError(f"cannot build an FKey for '{name}'")
 
 
 def swizzle(order):
-    mod = unreal.InputAxisSwizzleModifier()
+    cls = getattr(unreal, "InputModifierSwizzleAxis", None) or unreal.InputAxisSwizzleModifier
+    mod = cls()
     mod.set_editor_property("order", order)
     return mod
 
 
 def negate(x=False, y=False, z=False):
-    mod = unreal.NegateModifier()
+    cls = getattr(unreal, "InputModifierNegate", None) or unreal.NegateModifier
+    mod = cls()
     mod.set_editor_property("x", x)
     mod.set_editor_property("y", y)
     mod.set_editor_property("z", z)
@@ -87,12 +105,9 @@ def make_mapping(action, key_name, modifiers=None):
 
 def make_mapping_contexts(actions):
     # On-foot: WASD move, mouse look, E interact, F toggle.
-    try:
-        swizzle_enum = unreal.InputAxisSwizzle
-    except AttributeError:
-        swizzle_enum = unreal.InputAxisSwizzleModifierAxisOrder
+    swizzle_enum = unreal.InputAxisSwizzle
 
-    on_foot = create_asset_if_missing("IMC_QR_OnFoot", IMC_PATH, unreal.InputMappingContext, unreal.InputMappingContextFactory())
+    on_foot = create_asset_if_missing("IMC_QR_OnFoot", IMC_PATH, unreal.InputMappingContext, unreal.InputMappingContext_Factory())
     on_foot.set_editor_property("mappings", [
         make_mapping(actions["IA_QR_Move"], "W", [swizzle(swizzle_enum.YXZ)]),
         make_mapping(actions["IA_QR_Move"], "S", [swizzle(swizzle_enum.YXZ), negate(y=True)]),
@@ -104,7 +119,7 @@ def make_mapping_contexts(actions):
     ])
 
     # Driving: template IMC_Default keeps W/S/A/D/Space; this context adds only F.
-    vehicle = create_asset_if_missing("IMC_QR_VehicleActions", IMC_PATH, unreal.InputMappingContext, unreal.InputMappingContextFactory())
+    vehicle = create_asset_if_missing("IMC_QR_VehicleActions", IMC_PATH, unreal.InputMappingContext, unreal.InputMappingContext_Factory())
     vehicle.set_editor_property("mappings", [
         make_mapping(actions["IA_QR_ToggleVehicle"], "F"),
     ])
@@ -115,9 +130,7 @@ def make_mapping_contexts(actions):
 
 def make_item_definition():
     item_class = unreal.load_class(None, "/Script/UTItemsRuntime.UTItemDefinition")
-    factory = unreal.DataAssetFactory()
-    factory.set_editor_property("data_class", item_class)
-    da = create_asset_if_missing("DA_QR_Fuse", DATA_PATH, item_class, factory)
+    da = create_asset_if_missing("DA_QR_Fuse", DATA_PATH, item_class)
     da.set_editor_property("item_id", unreal.Name("Item.Fuse"))
     da.set_editor_property("display_name", unreal.Text("Предохранитель"))
     da.set_editor_property("description", unreal.Text("Стеклянный предохранитель для старого щитка."))
@@ -135,7 +148,9 @@ def spawn_class(class_path, location, rotation=None, label=None):
     if cls is None:
         raise RuntimeError(f"class not found: {class_path}")
     rot = rotation or unreal.Rotator()
-    actor = unreal.EditorLevelLibrary.spawn_actor_from_class(cls, location, rot)
+    actor = EAS.spawn_actor_from_class(cls, location, rot)
+    if actor is None:
+        raise RuntimeError(f"spawn failed: {class_path}")
     if label:
         actor.set_actor_label(label)
     return actor
@@ -146,7 +161,9 @@ def spawn_mesh(mesh_path, location, scale, rotation=None, label=None):
     if mesh is None:
         raise RuntimeError(f"mesh not found: {mesh_path}")
     rot = rotation or unreal.Rotator()
-    actor = unreal.EditorLevelLibrary.spawn_actor_from_object(mesh, location, rot)
+    actor = EAS.spawn_actor_from_object(mesh, location, rot)
+    if actor is None:
+        raise RuntimeError(f"spawn failed: {mesh_path}")
     actor.set_actor_scale3d(scale)
     if label:
         actor.set_actor_label(label)
@@ -154,7 +171,7 @@ def spawn_mesh(mesh_path, location, scale, rotation=None, label=None):
 
 
 def remove_previous_build():
-    for actor in unreal.EditorLevelLibrary.get_all_level_actors():
+    for actor in EAS.get_all_level_actors():
         try:
             label = actor.get_actor_label()
         except Exception:
@@ -164,12 +181,17 @@ def remove_previous_build():
             "RoadToWisdomMissionManager", "RoadToWisdomFuseBox", "UTLever", "UTWorldItem",
             "BP_SportsCar_Pawn_C",
         }:
-            unreal.EditorLevelLibrary.destroy_actor(actor)
+            EAS.destroy_actor(actor)
     log("previous build cleared")
 
 
 def build_map():
-    unreal.EditorLevelLibrary.new_level(MAP_PATH)
+    if unreal.EditorAssetLibrary.does_asset_exist(MAP_PATH):
+        if not LES.load_level(MAP_PATH):
+            raise RuntimeError(f"load_level failed for {MAP_PATH}")
+    else:
+        if not LES.new_level(MAP_PATH):
+            raise RuntimeError(f"new_level failed for {MAP_PATH}")
     remove_previous_build()
 
     # -- Terrain --------------------------------------------------------------
@@ -187,8 +209,10 @@ def build_map():
     van_bp = unreal.load_object(None, "/Game/VehicleTemplate/Blueprints/SportsCar/BP_SportsCar_Pawn.BP_SportsCar_Pawn")
     if van_bp is None:
         raise RuntimeError("BP_SportsCar_Pawn not found")
-    van = unreal.EditorLevelLibrary.spawn_actor_from_class(van_bp.generated_class(),
-                                                           unreal.Vector(0, 0, 120), unreal.Rotator(0, 90, 0))
+    van = EAS.spawn_actor_from_class(van_bp.generated_class(),
+                                     unreal.Vector(0, 0, 120), unreal.Rotator(0, 90, 0))
+    if van is None:
+        raise RuntimeError("van spawn failed")
     van.set_actor_label("QR_Van")
 
     # -- Relay station at the end of the road ----------------------------------
@@ -207,15 +231,14 @@ def build_map():
                         label="QR_Lever")
 
     # Crate with the fuse world item next to the mast.
-    crate = spawn_mesh("/Engine/BasicShapes/Cube.Cube", station + unreal.Vector(400, 300, 50), (1, 1, 1),
-                       label="QR_Crate")
-    crate.get_static_mesh_component().set_static_mesh(unreal.load_object(None, "/Engine/BasicShapes/Cube.Cube"))
+    spawn_mesh("/Engine/BasicShapes/Cube.Cube", station + unreal.Vector(400, 300, 50), (1, 1, 1),
+               label="QR_Crate")
 
     world_item = spawn_class("/Script/UTInventoryRuntime.UTWorldItem",
                              station + unreal.Vector(400, 300, 130), unreal.Rotator(),
                              label="QR_FuseWorldItem")
     payload = unreal.UTItemPayload()
-    payload.set_editor_property("b_unique", False)
+    payload.set_editor_property("unique", False)
     stack = unreal.UTItemStack()
     stack.set_editor_property("item_id", unreal.Name("Item.Fuse"))
     stack.set_editor_property("count", 1)
@@ -234,12 +257,14 @@ def build_map():
     spawn_class("/Script/Engine.PlayerStart", unreal.Vector(300, 500, 100), unreal.Rotator(0, -90, 0),
                 label="QR_PlayerStart")
 
-    sun = unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.DirectionalLight, unreal.Vector(0, 0, 2000))
+    sun = EAS.spawn_actor_from_class(unreal.DirectionalLight, unreal.Vector(0, 0, 2000))
     sun.set_actor_label("QR_Sun")
     sun.set_actor_rotation(unreal.Rotator(-22, -35, 0), False)
-    unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.SkyLight, unreal.Vector(0, 0, 3000)).set_actor_label("QR_SkyLight")
-    unreal.EditorLevelLibrary.spawn_actor_from_class(unreal.ExponentialHeightFog, unreal.Vector(0, 0, 0)).set_actor_label("QR_Fog")
+    EAS.spawn_actor_from_class(unreal.SkyLight, unreal.Vector(0, 0, 3000)).set_actor_label("QR_SkyLight")
+    EAS.spawn_actor_from_class(unreal.ExponentialHeightFog, unreal.Vector(0, 0, 0)).set_actor_label("QR_Fog")
 
+    if not LES.save_current_level():
+        raise RuntimeError("save_current_level failed")
     unreal.EditorLoadingAndSavingUtils.save_dirty_packages(True, True)
     log(f"map built and saved: {MAP_PATH}")
 
@@ -250,6 +275,13 @@ def main():
     make_item_definition()
     build_map()
     log("DONE")
+
+    # When run via -ExecutePythonScript the full editor keeps booting after the
+    # script; close it so the automation run terminates (no-op in a commandlet).
+    try:
+        unreal.SystemLibrary.quit_editor()
+    except Exception:
+        pass
 
 
 main()
