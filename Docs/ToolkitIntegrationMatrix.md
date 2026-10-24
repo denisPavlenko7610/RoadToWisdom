@@ -59,7 +59,12 @@ here.
 ## Verification plan
 
 1. UBT build of `RoadToWisdomEditor Win64 Development` — proves plugin closure
-   compiles against this project (see `Docs/HowToRun.md` for the command).
+   compiles against this project. **Executed: Succeeded** (2026-10-24).
 2. Headless editor smoke: load generated map `L_QuietRoad_Prototype`, check log for
-   plugin load errors / missing assets.
-3. PIE checklist: `Docs/TestingChecklist.md` (human or MCP-assisted).
+   plugin load errors / missing assets. **Executed: PASSED**
+   (`Tools/Editor/VerifyPrototype.py` — all actors present, mission refs wired,
+   Item.Fuse payload correct, input IMCs resolve, 0 CDO errors).
+3. Game-mode boot: `-game -NullRHI` on the slice map. **Executed: clean exit 0**
+   (caught and fixed a missing-UFUNCTION delegate bug in the process).
+4. PIE checklist: `Docs/TestingChecklist.md` — **manual-check-required** (needs a
+   human in the editor; Unreal MCP server was not running during the session).
