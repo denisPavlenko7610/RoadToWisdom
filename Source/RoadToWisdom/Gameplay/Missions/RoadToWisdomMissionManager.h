@@ -68,8 +68,13 @@ protected:
 	void AdvanceStage();
 
 	void SetObjectiveText();
+
+	UFUNCTION()
 	void HandleFuseInstalled();
+
+	UFUNCTION()
 	void HandleLeverSwitched(AUTLever* Lever, bool bIsOn);
+
 	void CheckArrival();
 
 	/** The relay fuse box (placed with the station). */
