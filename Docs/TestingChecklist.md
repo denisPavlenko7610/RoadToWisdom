@@ -9,7 +9,10 @@ Status vocabulary (per AGENTS.md): `implemented` → `compiled` → `editor-veri
 |---|---|---|
 | C++ editor target builds | `Build.bat RoadToWisdomEditor Win64 Development` | **compiled** — Result: Succeeded |
 | Plugin closure compiles | same build (all 7 UT modules linked) | **compiled** |
-| Prototype map exists and loads in the editor | `Tools/Editor/VerifyPrototype.py` (`-ExecutePythonScript`) | **editor-verified** — `[VERIFY-RESULT] PASSED`: van BP, fuse box, lever, world item (Item.Fuse ×1), mission manager with wired refs, lights, player start |
+| Prototype map exists and loads in the editor | `Tools/Editor/VerifyPrototype.py` (`-ExecutePythonScript`) | **editor-verified** — `[VERIFY-RESULT] PASSED`: van BP (single `QuietRoad.Van` tag), fuse box, lever, world item (Item.Fuse ×1), mission manager with wired refs, radio panel, decor cluster (110/110/130/45 HISM instances after reload), SkyAtmosphere, lights, player start |
+| M2 decor instance persistence | generator reload check + verify | **editor-verified** — HISM instances serialize into the umap only via direct `PerInstanceSMData` writes (see the toolkit matrix note) |
+| Per-map GameMode binding | `-game` run log | **editor-verified** — `LogLoad: Game class is 'RoadToWisdomQuietRoadGameMode'` (binding lives in WorldSettings; the ini `GameModeMapOverrides` did not apply) |
+| Real rendered look of the slice | `-game -windowed` + `HighResShot` | **editor-verified** — screenshot: on-foot third-person start, one van, tinted ground/road, trees/bushes/rocks visible (Saved/Screenshots/WindowsEditor) |
 | Input assets resolve at CDO construction | same run, log checked | **editor-verified** — 0 «Failed to find» CDO errors |
 | Game-mode boot of the slice map | `-game -NullRHI -ExecCmds="quit"` on `L_QuietRoad_Prototype` | **editor-verified** — clean exit 0, no ensures/exceptions (after the UFUNCTION fix below) |
 | Content budget | `python Tools/CheckAssetBudget.py` | **passed** — 97.0 MiB / 250 MiB |

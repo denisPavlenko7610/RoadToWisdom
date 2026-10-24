@@ -40,11 +40,17 @@ with "Generate Visual Studio project files" or just let the launcher open it).
 Automated (headless editor, full editor boot via `UnrealEditor-Cmd -ExecutePythonScript`):
 
 - `Tools/Editor/BuildQuietRoadPrototype.py` — input actions, mapping contexts, the
-  `Item.Fuse` data asset and the whole prototype map (idempotent; rebuilds the scene).
+  `Item.Fuse` data asset, the whole prototype map (idempotent), the WorldSettings
+  GameMode binding and the M2 decor cluster carrier.
+- `Tools/Editor/GenerateM2Decor.py` — deterministic M2 decor (seed/density/exclusions)
+  into the map's HISM cluster + tinted material palette. Explicitly loads the target
+  map first: the editor silently restores a different current world otherwise.
+- `Tools/Editor/SetMapGameMode.py`, `Tools/Editor/TakeM2Screenshot.py` — helpers;
+  for real screenshots run the game windowed with `-ExecCmds="HighResShot 1400x800"`.
 - `Tools/Editor/VerifyPrototype.py` — loads the map, checks the actor set, mission
-  references, the fuse world item payload and input assets; prints
-  `[VERIFY-RESULT] PASSED/FAILED`. Latest run: **PASSED** (log evidence in this doc's
-  git history and `Saved/Logs`).
+  references, the fuse world item payload, input assets, the decor cluster instance
+  counts and SkyAtmosphere; prints `[VERIFY-RESULT] PASSED/FAILED`.
+
 
 Manual (needs a human in the editor):
 

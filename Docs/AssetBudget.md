@@ -1,13 +1,13 @@
 # Asset Budget — RoadToWisdom
 
-Measured with `python Tools/CheckAssetBudget.py` (2026-10-24, after M1 content).
+Measured with `python Tools/CheckAssetBudget.py` (2026-10-24, after M1 stabilization + M2 visual reference).
 
 ## Totals
 
 | Metric | Value | Target |
 |---|---|---|
-| Tracked game content (git ls-files, Content/Config/Source/Docs/Tools) | **97.0 MiB**, 311 files | ≤ 250 MiB (first slice), ≤ 500 MiB extended |
-| `Content/QuietRoad/` (slice content) | 76 KB (7 input assets, item definition, map) | — |
+| Tracked game content (git ls-files, Content/Config/Source/Docs/Tools) | **97.3 MiB**, 341 files | ≤ 250 MiB (first slice), ≤ 500 MiB extended |
+| `Content/QuietRoad/` (slice content) | ~200 KB (input assets, item definition, map + M2 material palette) | — |
 | `Plugins/` (versioned) | **0 B** — UT plugins are junctions, gitignored | — |
 | Files > 50 MiB | none | none without explicit reason |
 | Git LFS | not used (nothing large enough yet) | re-evaluate before large packs |
