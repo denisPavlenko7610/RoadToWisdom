@@ -217,6 +217,14 @@ def build_map():
     # The controller's one-shot registration looks for exactly this tag.
     van.set_editor_property("tags", [unreal.Name("QuietRoad.Van")])
 
+    # -- Radio panel of the van (GDD 23.1), next to the driver door -------------
+    radio = spawn_class("/Script/RoadToWisdom.RoadToWisdomVanRadioPanel",
+                        unreal.Vector(160, 60, 95), unreal.Rotator(0, 90, 0),
+                        label="QR_VanRadio")
+    radio.get_editor_property("PanelMesh").set_static_mesh(
+        unreal.load_object(None, "/Engine/BasicShapes/Cube.Cube"))
+    radio.get_editor_property("PanelMesh").set_world_scale3d((0.25, 0.55, 0.7))
+
     # -- Relay station at the end of the road ----------------------------------
     station = unreal.Vector(24000, 0, 0)
     spawn_mesh("/Engine/BasicShapes/Cylinder.Cylinder", station + unreal.Vector(0, 600, 100), (2, 2, 4),

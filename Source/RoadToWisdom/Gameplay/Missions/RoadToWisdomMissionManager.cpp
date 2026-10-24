@@ -59,6 +59,22 @@ void ARoadToWisdomMissionManager::EndPlay(const EEndPlayReason::Type EndPlayReas
 	Super::EndPlay(EndPlayReason);
 }
 
+FText ARoadToWisdomMissionManager::GetRadioMessage() const
+{
+	switch (Stage)
+	{
+	case EQRRelayMissionStage::WaitForArrival:
+		return NSLOCTEXT("QuietRoad", "RadioStage0", "Тишина в эфире. Координаты ретранслятора помечены: восток, у дороги.");
+	case EQRRelayMissionStage::FindFuse:
+		return NSLOCTEXT("QuietRoad", "RadioStage1", "Ретранслятор молчит из-за питания. Найдите предохранитель и вставьте его в щиток.");
+	case EQRRelayMissionStage::PullLever:
+		return NSLOCTEXT("QuietRoad", "RadioStage2", "Питание почти восстановлено. Включите рубильник станции.");
+	case EQRRelayMissionStage::Completed:
+	default:
+		return NSLOCTEXT("QuietRoad", "RadioStage3", "Ретранслятор в эфире. Радиосканер обновил карту района.");
+	}
+}
+
 void ARoadToWisdomMissionManager::AdvanceStage()
 {
 	if (Stage >= EQRRelayMissionStage::Completed)
