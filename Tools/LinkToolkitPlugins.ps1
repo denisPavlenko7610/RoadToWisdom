@@ -24,7 +24,8 @@ $Plugins = @(
     'UTItems',
     'UTProgression',
     'UTWorldMechanics',
-    'UTCombat'
+    'UTCombat',
+    'UTGameTime'
 )
 
 $ToolkitRoot = (Resolve-Path $ToolkitRoot).Path
