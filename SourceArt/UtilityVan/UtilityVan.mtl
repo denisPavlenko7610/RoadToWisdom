@@ -1,0 +1,10 @@
+newmtl Body
+Kd 1 1 1
+newmtl Wheel_FL
+Kd 1 1 1
+newmtl Wheel_FR
+Kd 1 1 1
+newmtl Wheel_BL
+Kd 1 1 1
+newmtl Wheel_BR
+Kd 1 1 1

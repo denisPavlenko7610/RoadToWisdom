@@ -112,10 +112,9 @@ without broadcasting gameplay events. Radio E press starts UT's Save hold; relea
 
 within 0.3 s cancels it and requests Radio. Stowing cancels active interactions.
 
-
 ## Editor world generation (current priority)
 
-Tools/World/PrepareWorld.py builds deterministic height/route/placement data outside UE (numpy). GenerateWorld.py saves native Landscape, road spline meshes and cell-based HISM through the editor-only RoadToWisdomEditor module. There is no custom runtime generation or streaming implementation. World Partition streams saved spatial actors; the main map uses GameModeBase for inspection while gameplay integration is deferred.
+Tools/World/PrepareWorld.py builds deterministic height/route/placement data outside UE (numpy). GenerateWorld.py saves native Landscape, road spline meshes and cell-based HISM through the editor-only RoadToWisdomEditor module. There is no custom runtime generation or streaming implementation. World Partition streams saved spatial actors; the main map uses existing VehicleAdv GameMode with temporary Offroad while mission integration is deferred.
 
 Generator ownership is explicit: QRWorld.Generated plus category tags. Manual actors are never selected for replacement. Material instances and collision derivatives live under QuietRoadWorld; Fab originals are referenced, not edited. World Outliner folders separate routes, named settlements and nature categories. Gameplay/Toolkit ownership is unchanged.
 
@@ -124,3 +123,5 @@ Generator ownership is explicit: QRWorld.Generated plus category tags. Manual ac
 The runtime module root contains only module/build entry files. Gameplay/Character, Player, Game, Items, Save, Missions, Vehicle, UI and World contain the corresponding game code. VehicleTemplate/Core, Wheels, UI, OffroadCar and Variants keep the retained template implementation separate. Tests remain under Tests. Editor-only native generation tools are under RoadToWisdomEditor/Public/WorldGeneration and Private/WorldGeneration. Include paths are module-relative; reflected class names and /Script/RoadToWisdom paths are unchanged.
 
 SportsCar was explicitly retired by the user. Shared parent materials and their texture dependencies were moved to Vehicles/Shared before deletion; spawn/respawn Blueprint defaults and the VehicleBasic placed pawn now use Offroad. General chassis/wheel classes remain because Offroad inherits them. Offroad is temporary pending the future camper.
+
+UtilityVan: concrete template pawn + Blueprint configuration; editor-only QRVehicleEditorLibrary creates the supplied undamaged mesh skeleton/skin weights, chassis PhysicsAsset and native WheelController AnimBP. No runtime mesh generation or custom wheel animation.
