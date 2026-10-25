@@ -80,3 +80,5 @@ Only the undamaged supplied model is imported. Rebuild its assets with the edito
 ```
 
 SourceArt/UtilityVan contains the undamaged OBJ, material groups, five textures and wheel centers. The native editor helper creates Root + four wheel bones, rigid skin weights, one chassis collision box and a VehicleAnimationInstance graph with WheelController. Runtime uses the stock template input/camera code and Chaos wheels. Assets live in Vehicles/UtilityVan/{Meshes,Materials,Textures,Physics,Animation,Blueprints}. Do not run synchronous Interchange import through Rider's task-graph callback; use this commandlet. Never regenerate Landscape with NullRHI.
+
+Van material check: run `Tools/Editor/VerifyUtilityVanMaterials.py` in the editor, and again while PIE is active. It checks the saved skeletal usage on the base/instance, all five texture references, skeletal slots and the actual pawn component. A correct editor preview alone does not establish PIE/cooked shader support. The importer saves the skeletal usage explicitly.

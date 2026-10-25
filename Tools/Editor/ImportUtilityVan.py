@@ -40,10 +40,14 @@ def main():
             node.set_editor_property('sampler_type',unreal.MaterialSamplerType.SAMPLERTYPE_NORMAL if key=='Normal' else unreal.MaterialSamplerType.SAMPLERTYPE_COLOR if key=='BaseColor' else unreal.MaterialSamplerType.SAMPLERTYPE_MASKS)
             assert unreal.MaterialEditingLibrary.connect_material_property(node,'RGB' if key in ('BaseColor','Normal') else 'R',props[key])
         unreal.MaterialEditingLibrary.recompile_material(material)
+    # Persist skeletal permutations explicitly: editor auto-usage is not reliable in PIE/cook.
+    unreal.MaterialEditingLibrary.set_base_material_usage(material,unreal.MaterialUsage.MATUSAGE_SKELETAL_MESH,True)
+    unreal.MaterialEditingLibrary.recompile_material(material)
     instance=unreal.load_asset(OUT+'/Materials/MI_UtilityVan')
     if not instance:
         instance=tools.create_asset('MI_UtilityVan',OUT+'/Materials',unreal.MaterialInstanceConstant,unreal.MaterialInstanceConstantFactoryNew())
-        unreal.MaterialEditingLibrary.set_material_instance_parent(instance,material)
+    unreal.MaterialEditingLibrary.set_material_instance_parent(instance,material)
+    unreal.MaterialEditingLibrary.set_material_usage_override(instance,unreal.MaterialUsage.MATUSAGE_SKELETAL_MESH,False,True)
     source=unreal.load_asset(OUT+'/Meshes/SM_UtilityVan_Source')
     if not source:
         task=unreal.AssetImportTask();task.filename=str(ROOT/'SourceArt/UtilityVan/UtilityVan.obj')
@@ -62,6 +66,10 @@ def main():
     mesh=unreal.load_asset(OUT+'/Meshes/SK_UtilityVan')
     if not mesh:mesh=unreal.QRVehicleEditorLibrary.build_van_rig(source,OUT,[unreal.Vector(*centers[k]) for k in ('Wheel_FL','Wheel_FR','Wheel_BL','Wheel_BR')])
     assert mesh,'native van rig failed'
+    # Re-running import must also repair existing skeletal assets, not just the static source.
+    slots=mesh.get_editor_property('materials')
+    for slot in slots:slot.set_editor_property('material_interface',instance)
+    mesh.set_editor_property('materials',slots)
     anim=unreal.load_asset(OUT+'/Animation/ABP_UtilityVan')
     if not anim:anim=unreal.QRVehicleEditorLibrary.build_van_animation(mesh,OUT+'/Animation/ABP_UtilityVan')
     assert anim,'native wheel animation graph failed'
@@ -95,6 +103,8 @@ def main():
         obj=unreal.load_asset(path);cdo=unreal.get_default_object(obj.generated_class())
         cdo.set_editor_property('default_pawn_class' if 'GameMode' in path else 'vehicle_pawn_class',bp.generated_class())
         unreal.BlueprintEditorLibrary.compile_blueprint(obj);EAL.save_loaded_asset(obj)
+    assert unreal.MaterialEditingLibrary.has_material_usage(instance,unreal.MaterialUsage.MATUSAGE_SKELETAL_MESH),'Van material lacks skeletal usage'
+    assert all(s.get_editor_property('material_interface')==instance for s in mesh.get_editor_property('materials')),'Van skeletal slots were not assigned'
     EAL.save_directory(OUT,only_if_is_dirty=False,recursive=True)
     unreal.log('[UTILITY-VAN] undamaged native rig and Chaos pawn saved')
 

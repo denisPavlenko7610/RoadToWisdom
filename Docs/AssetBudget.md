@@ -2,9 +2,9 @@
 
 Measured 2026-10-25 after the undamaged Utility Van import.
 
-- Content: 625.68 MiB.
-- Tracked + pending source: 631.39 MiB.
-- .git: 644.81 MiB before final commit.
+- Content: 625.69 MiB.
+- Tracked + pending source: 631.41 MiB.
+- .git: 654.40 MiB before final commit.
 - Largest asset: 16.25 MiB.
 - Files >=50 MiB: 0; files >=100 MiB: 0; Git LFS pointers: 0.
 
