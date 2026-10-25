@@ -156,3 +156,13 @@ Evidence: Saved/WorldGeneration, WorldPilotGPU.log, LandscapeRepair.log, WorldAc
 - tooling limitation: synchronous Interchange import through Rider's task callback caused a native TaskGraph recursion assertion. Import moved to a dedicated editor Python commandlet, which completes successfully.
 
 - editor-verified: 13-second actual PIE UtilityVan drive accelerated to 3.11 m/s at 40% throttle, covered 11.4 m, steered briefly and stopped with brake/handbrake. Wheel contact, suspension offset and animated bone rotation changed during movement. Evidence UtilityVanDrive.json. This is a short smoke test, not full route or keyboard acceptance.
+
+## Utility Van skeletal material regression — 2026-10-25
+
+Previous PIE driving checks established movement, not correct shading. UtilityVanFinalReopen.log contained `missing usage flag SkeletalMesh` and engine fallback to Default Material. The editor preview had auto-enabled usage only in memory. Both persisted M_UtilityVan and MI_UtilityVan reported false before this fix.
+
+- implemented: importer explicitly sets the base SkeletalMesh usage with UE 5.8 SetBaseMaterialUsage, inherits it on MI_UtilityVan, repairs all five slots even when SK_UtilityVan already exists, and rejects a missing usage/material assignment.
+- editor-verified: fixed assets saved; all five skeletal slots, Blueprint component slots and five texture parameters resolve. Dedicated VerifyUtilityVanMaterials.py records editor/PIE checks in Saved/WorldGeneration/VanMaterials_*.json.
+- editor-verified: repeat import commandlet completed with 0 errors / 0 warnings (VanMaterialImport.log). Fresh editor process loaded the persisted flags as true. Editor and actual PIE pawn checks passed (VanMaterials_Editor.json / VanMaterials_PIE.json).
+- editor-verified: real PIE screenshot UtilityVan_Materials_PIE.png shows textured paint, window, lights and branding. Surrounding assets were hidden only in the temporary PIE world for isolated material inspection; PIE ended and the editor map was not modified. VanMaterialReload.log contains no missing SkeletalMesh usage/default material fallback warnings.
+- editor-verified: imported static wheel-section bounds match all four skeleton wheel centers. No rig/UV/physics changes were needed for this material fix.
