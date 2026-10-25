@@ -106,6 +106,15 @@ def main():
         elif abs((origin.z - extent.z) - hit.to_dict()["location"].z) > 60:
             errors.append("Floating/buried foundation: " + actor.get_actor_label())
     assert sum(a.get_actor_label() == "VehicleStart" for a in actors) == 1, "missing/duplicate VehicleStart"
+    ignore = [a for a in actors if not isinstance(a, unreal.LandscapeProxy)]
+    for actor in actors:
+        name = actor.get_actor_label()
+        if name not in ("VehicleStart", "ExplorerStart"): continue
+        position = actor.get_actor_location()
+        hit = unreal.SystemLibrary.line_trace_single(world,position+unreal.Vector(0,0,10000),
+            position-unreal.Vector(0,0,10000),unreal.TraceTypeQuery.ECC_VISIBILITY,False,ignore,unreal.DrawDebugTrace.NONE)
+        clearance = position.z-hit.to_dict()["location"].z if hit else -10000
+        if not 20 <= clearance <= 250: errors.append(f"Invalid grounded start {name}: {clearance:.1f} cm")
     result = dict(map=world.get_path_name(), landscape_components=components,
                   classes=dict(Counter(a.get_class().get_name() for a in actors)),
                   instances=dict(counts), hism_sha256=signature(actors), road_surface_checks=surface_checks,

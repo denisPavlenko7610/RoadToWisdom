@@ -186,7 +186,7 @@ happen in this session. See also GDD §20 (Definition of Done).
 
   `.uasset` references (task rule §0.9).
 
-- Current user-authorized scope: editor-generated 4032 m open world using the installed Nimikko Wild West Town. New gameplay/camper work is deferred. SportsCar was explicitly retired after dependency audit; temporary transport is the existing Offroad pawn. Shared chassis/wheels/materials remain. Main map: `/Game/QuietRoadWorld/Maps/L_QuietRoad_OpenWorld`; old prototype map retired.
+- Current user-authorized scope: editor-generated 4032 m open world using the installed Nimikko Wild West Town. New missions/gameplay systems remain deferred. The user explicitly authorized the undamaged supplied Utility Van with a native Chaos rig as current transport. Never import its damaged variant. SportsCar was explicitly retired after dependency audit; retain Offroad template references until separately audited. Shared chassis/wheels/materials remain. Main map: `/Game/QuietRoadWorld/Maps/L_QuietRoad_OpenWorld`; old prototype map retired.
 - Current content policy supersedes the initial 250 MiB slice budget: ordinary Git only, **no Git LFS**, every tracked file strictly below 100 MiB, preferably below 50 MiB. Preserve required World Partition External Actors. Original Fab assets remain unchanged; do not add packs or upload protected assets to AI generation services. Run `python Tools/CheckAssetBudget.py` before commits.
 - `.gitignore` already excludes `Binaries/`, `Intermediate/`, `Saved/`,
 

@@ -5,6 +5,6 @@ public class RoadToWisdomEditor : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PublicDependencyModuleNames.AddRange(new[]{"Core","CoreUObject","Engine"});
-        PrivateDependencyModuleNames.AddRange(new[]{"UnrealEd","Landscape"});
+        PrivateDependencyModuleNames.AddRange(new[]{"UnrealEd","Landscape","MeshDescription","StaticMeshDescription","SkeletalMeshDescription","SkeletalMeshUtilitiesCommon","AnimationCore","AssetRegistry","AnimGraph","BlueprintGraph","KismetCompiler","ChaosVehiclesEditor","ChaosVehicles"});
     }
 }

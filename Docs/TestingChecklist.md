@@ -127,17 +127,32 @@ uses engine SaveGameToSlot, with no extra power-loss-safe write guarantee. World
 application is sequential: this slice prevalidates the sole fuse-box schema and identity.
 Rendered driving, physical keyboard tap/hold, and art acceptance still require checks.
 
-
 ## World Generation — 2026-10-25
 
-- compiled: UE 5.8.4 RoadToWisdomEditor, Saved/Logs/WorldEditorBuild.log.
-- editor-verified: actual pilot 1008 m saved; 16 Landscape components, 93 road surface traces, 90 vehicle-envelope checks, 6 buildings, no errors.
-- editor-verified: actual main map 4032 m saved; 256 components in 64 proxies; 12.204 km roads; maximum sampled route grade 4.13%, minimum sampled turn radius 87.4 m; 9 POI / 18 buildings. 406 surface traces and 401 envelope checks pass, maximum road gap 3.52 cm. Foundation and building overlap checks pass after correction.
-- editor-verified: full repeated regeneration: identical HISM SHA256 86ddba9948461c0854cb9231de888439996d6935490be3596ee06a2d020be4ca, no duplicate generated labels; untagged VehicleStart name and transform preserved. Repeat host preparation gives identical height and manifest hashes.
-- editor-verified: PIE loaded main map and DefaultPawn; teleporting across region unloaded 11 starting Landscape actors and loaded 10 different ones (StreamingPIE.json). This verifies real runtime streaming, not vehicle travel.
-- editor-verified: repaired material graph pin names and mask channels; final PIE start has no landscape shader compile errors. Original Fab materials remain unchanged. Landscape instance adds rotated/multiple texture scales, macro tint, distance fading, slope tint and reduced normal strength.
-- editor-verified: old prototype removed after Asset Registry returned no package referencers; default editor/game maps point to OpenWorld. Original Fab and template maps preserved.
-- manual-check-required: full Chaos Vehicle drive, continuous high-speed cell transition test, foreground/Standalone performance profiling, artistic approval of Fab building compositions. No FPS guarantee or full vehicle test claimed.
-- manual-check-required: original Vehicle Template gameplay regression; template assets/classes were retained, but this world-only stage did not rerun its gameplay suite.
+- compiled: UE 5.8.4 RoadToWisdomEditor after source reorganization and SportsCar class removal. WorldEditorBuildFinal.log: Succeeded.
+- editor-verified: pilot GPU generation (WorldPilotGPU.log), 1008 m, 16 components, 93 surface traces, 90 envelope checks, 6 buildings, no errors.
+- editor-verified: full GPU generation and fresh reopen: 4032 m, 256 components / 64 proxies, 12.222 km roads, sampled maximum grade 6.19%, minimum radius 87.4 m, 9 POI / 18 buildings. 406 surface and 401 envelope checks, maximum gap 5.35 cm, no building overlap/foundation failures. Instance transforms persisted across regeneration and reopen. After descriptive actor-label changes the label-inclusive signature is 736512e9461518ae7a58485c75239351da7651dc06dee1b5d2075c54787de7a3.
+- fixed regression: earlier -NullRHI generation kept correct collision but copied blank rendered heightmaps during Landscape proxy splitting. Both maps regenerated in the GPU editor. Generator rejects -NullRHI; VerifyWorld now checks rendered proxy bounds. It passed after a fresh main-map reopen. Earlier headless collision-only checks did not establish visual correctness.
+- editor-verified: geometry-only capture confirmed terrain continuity and improved the extreme road cuts. Engine diagnostic materials/hiding restored. Production Landscape uses MI_RegionLandscape with rotated/multiple scales, macro tint, distance fading and slope tint. Fab originals unchanged.
+- editor-verified: same-seed generation has no duplicate labels and preserves the manual VehicleStart. Marker height/heading deliberately aligned once to the revised road. Host preparation deterministic.
+- editor-verified: Offroad spawned through existing VehicleAdv GameMode in PIE, simulates Chaos physics and traveled 136.5 m under throttle. Short straight drive only; not the entire route or manual keyboard acceptance. No vehicle Actor saved into the permanent map.
+- editor-verified: PIE streaming at 2000 m range: far checkpoint unloaded 24 starting Landscape actors and loaded 25 different ones (StreamingPIEFinal.json).
+- editor-verified: Asset Registry audit before SportsCar retirement. VehicleBasic placed pawn and VehicleAdv/TimeTrial spawn/respawn defaults use Offroad; shared materials/textures moved to Vehicles/Shared before deletion. SportsCar assets/native classes removed; base chassis/wheels kept. Blueprint classes loaded after rebuild/reopen.
+- editor-verified: retired prototype deleted after zero package referencers; startup/game defaults point to OpenWorld. Original Fab and remaining template maps retained.
+- manual-check-required: full route drive at speed and all branches, keyboard/camera acceptance, artistic approval of Fab building compositions, foreground/Standalone performance profiling. Background CSV was captured before rendered-heightmap repair; timings are not valid final-world FPS acceptance.
+- manual-check-required: exhaustive TimeTrial/Offroad template gameplay regression.
 
-Evidence is in Saved/WorldGeneration and WorldGenerationEditor.log; Saved is intentionally untracked. Legacy tests requiring the retired prototype are not tests of the new world. M3.1 is not implemented.
+Capture tooling encountered a native realtime-override ensure; the triggering call was removed. A Rider map switch during World Tick hit an engine assertion; generation now avoids reloading the active map, and pilot GPU generation ran in its own editor process. Final main-map reopen/validation succeeded. Legacy tests naming the retired prototype do not test this world. M3.1 is not implemented.
+
+Evidence: Saved/WorldGeneration, WorldPilotGPU.log, LandscapeRepair.log, WorldAcceptance.log. Saved stays untracked. Final six editor captures are stored locally; protected Fab image data was not submitted to generative image tools.
+
+## Utility Van integration
+
+- compiled: RoadToWisdomEditor UE 5.8.4, UtilityVanBuild.log: Succeeded.
+- editor-verified: commandlet imported only undamaged geometry (3308 triangles), five 1K textures, native Root + four wheel skeleton, rigid skin weights, chassis PhysicsAsset and compiled WheelController AnimBP. ImportUtilityVan.log succeeded.
+- editor-verified: fresh main-map reopen resolves BP_UtilityVan_Pawn as GameMode default. All five reference-bone transforms match supplied wheel centers. Blueprint-created vehicle has a running ABP_UtilityVan instance.
+- editor-verified: fresh reopen retained ExplorerStart at z6664.50 and VehicleStart at z6564.50 above actual terrain. VerifyWorld passes 406 road traces / 401 envelope checks and grounded-marker validation. actor.modify() is required before moving saved External Actors; generator now enforces it.
+- manual-check-required: complete van route, physical keyboard/camera acceptance and foreground performance. Short scripted Chaos test is recorded separately in Saved/WorldGeneration/UtilityVanDrive.json; it does not prove full-route acceptance.
+- tooling limitation: synchronous Interchange import through Rider's task callback caused a native TaskGraph recursion assertion. Import moved to a dedicated editor Python commandlet, which completes successfully.
+
+- editor-verified: 13-second actual PIE UtilityVan drive accelerated to 3.11 m/s at 40% throttle, covered 11.4 m, steered briefly and stopped with brake/handbrake. Wheel contact, suspension offset and animated bone rotation changed during movement. Evidence UtilityVanDrive.json. This is a short smoke test, not full route or keyboard acceptance.

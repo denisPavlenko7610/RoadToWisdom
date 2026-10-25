@@ -15,7 +15,7 @@ Build with the Editor closed. The editor target includes RoadToWisdomEditor, a s
 
 ## Open and explore
 
-Open RoadToWisdom.uproject. EditorStartupMap and GameDefaultMap point to `/Game/QuietRoadWorld/Maps/L_QuietRoad_OpenWorld`. The level uses the existing BP_VehicleAdvGameMode with BP_OffroadCar_Pawn as temporary transport; it contains no permanent vehicle or mission actors. SportsCar assets/classes were explicitly retired; shared materials were moved to Vehicles/Shared. VehicleStart marks the future van position. World Partition cells can be loaded using its editor panel; PIE streams around the pawn.
+Open RoadToWisdom.uproject. EditorStartupMap and GameDefaultMap point to `/Game/QuietRoadWorld/Maps/L_QuietRoad_OpenWorld`. The level uses the existing BP_VehicleAdvGameMode with BP_UtilityVan_Pawn as transport; it contains no permanent vehicle or mission actors. SportsCar assets/classes were explicitly retired; shared materials were moved to Vehicles/Shared. VehicleStart and ExplorerStart are grounded reserved spawn markers. World Partition cells can be loaded using its editor panel; PIE streams around the pawn.
 
 The old L_QuietRoad_Prototype map was deleted on request. Vehicle Template and original Fab maps remain for reference. Earlier gameplay tests/tools naming that prototype are legacy, not acceptance tests for this new map.
 
@@ -70,3 +70,13 @@ Engine ModelContextProtocol and EditorToolset are enabled, HTTP endpoint `http:/
 ## Git
 
 No Git LFS. Every source asset must be below 100 MiB, preferably below 50 MiB. Run `python Tools/CheckAssetBudget.py`; it includes pending assets and checks Git attributes. Commit maps together with Content/__ExternalActors__ and Content/__ExternalObjects__. Saved, Binaries, Intermediate and DerivedDataCache stay ignored.
+
+## Utility van assets
+
+Only the undamaged supplied model is imported. Rebuild its assets with the editor closed:
+
+```powershell
+& "C:/Program Files/Epic Games/U_5.8/UE_5.8/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" "$PWD/RoadToWisdom.uproject" -run=pythonscript "-script=$PWD/Tools/Editor/ImportUtilityVan.py" -unattended -nop4
+```
+
+SourceArt/UtilityVan contains the undamaged OBJ, material groups, five textures and wheel centers. The native editor helper creates Root + four wheel bones, rigid skin weights, one chassis collision box and a VehicleAnimationInstance graph with WheelController. Runtime uses the stock template input/camera code and Chaos wheels. Assets live in Vehicles/UtilityVan/{Meshes,Materials,Textures,Physics,Animation,Blueprints}. Do not run synchronous Interchange import through Rider's task-graph callback; use this commandlet. Never regenerate Landscape with NullRHI.

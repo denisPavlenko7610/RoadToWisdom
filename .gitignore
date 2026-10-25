@@ -76,3 +76,7 @@ Thumbs.db
 # Python editor tool caches
 __pycache__/
 *.pyc
+
+# Reproducible source for the user-supplied undamaged van.
+!SourceArt/UtilityVan/UtilityVan.obj
+!SourceArt/UtilityVan/Textures/*.png

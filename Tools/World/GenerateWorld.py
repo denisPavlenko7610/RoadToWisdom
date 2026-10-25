@@ -256,8 +256,18 @@ def configure_streaming():
                 obj.set_editor_property("LoadingRange", 0)
             elif kind == "RuntimePartitionLHGrid":
                 obj.set_editor_property("LoadingRange", max(200000, obj.get_editor_property("LoadingRange")))
+                obj.set_editor_property("bBlockOnSlowStreaming", True)
                 layers += 1
     assert layers, "No spatial World Partition grids configured"
+    manifest = json.loads((ROOT / "Saved/WorldGeneration/World.json").read_text())
+    sx, sy, _ = manifest["roads"][0]["points"][0]
+    for actor in EAS.get_all_level_actors():
+        if isinstance(actor, unreal.LandscapeStreamingProxy):
+            center, extent = actor.get_actor_bounds(False)
+            contains_start = abs(center.x-sx*100) <= extent.x and abs(center.y-sy*100) <= extent.y
+            # One small startup terrain tile is always present before the pawn is
+            # spawned. All other terrain/nature continues to stream normally.
+            LIB.set_spatial_loading(actor, not contains_start)
 
 
 def organize_scene():
@@ -278,6 +288,16 @@ def organize_scene():
             else:
                 folder = "Generated/Atmosphere"
             actor.set_folder_path(folder)
+            if "QRWorld.Terrain" in tags and isinstance(actor, unreal.LandscapeStreamingProxy):
+                center, extent = actor.get_actor_bounds(False)
+                half = json.loads((ROOT / "Saved/WorldGeneration/World.json").read_text())["settings"]["WorldSize"]*50
+                ix = round((center.x-extent.x+half)/50400)
+                iy = round((center.y-extent.y+half)/50400)
+                actor.set_actor_label(f"QRW_Terrain_Tile_X{ix:02d}_Y{iy:02d}")
+            elif "QRWorld.Vegetation" in tags or "QRWorld.Rocks" in tags:
+                if "_Cell_" not in label:
+                    ix, iy = map(int, label.rsplit("_",2)[1:])
+                    actor.set_actor_label(f"QRW_{label.split('_')[1]}_Cell_X{ix:02d}_Y{iy:02d}")
         elif label in ("VehicleStart", "ExplorerStart"):
             actor.set_folder_path("Manual/Starts")
         elif isinstance(actor, (unreal.WorldDataLayers, unreal.WorldPartitionMiniMap)):
@@ -351,7 +371,7 @@ def main(category="All"):
                     packed.append(t)
                 mesh = shrub if kind == "Shrubs" else grass if kind == "Grass" else rock
                 mat = None if kind == "Shrubs" else grassmat if kind == "Grass" else rockmat
-                assert LIB.create_instances(f"QRW_{kind}_{cell['cell'][0]}_{cell['cell'][1]}", origin,
+                assert LIB.create_instances(f"QRW_{kind}_Cell_X{cell['cell'][0]:02d}_Y{cell['cell'][1]:02d}", origin,
                                             mesh, mat, packed, kind == "RockLarge",
                                             180000 if kind == "RockLarge" else 45000)
     if category in ("All", "Lighting"): light_scene()
@@ -366,7 +386,22 @@ def main(category="All"):
         marker.set_actor_label("VehicleStart");
         marker.set_folder_path("Manual");
         LIB.set_spatial_loading(marker, False)
+    # Reserved generator start markers follow rebuilt terrain; unrelated manual actors remain untouched.
     world = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
+    start, following = manifest["roads"][0]["points"][:2]
+    heading = math.degrees(math.atan2(following[1]-start[1], following[0]-start[0]))
+    ignore = [a for a in EAS.get_all_level_actors() if not isinstance(a, unreal.LandscapeProxy)]
+    hit = unreal.SystemLibrary.line_trace_single(world, unreal.Vector(start[0]*100,start[1]*100,100000),
+          unreal.Vector(start[0]*100,start[1]*100,-100000),unreal.TraceTypeQuery.ECC_VISIBILITY,
+          False,ignore,unreal.DrawDebugTrace.NONE)
+    assert hit, "No Landscape below reserved start markers"
+    ground_z = hit.to_dict()["location"].z
+    for actor in EAS.get_all_level_actors():
+        name = actor.get_actor_label()
+        if name in ("VehicleStart", "ExplorerStart"):
+            actor.modify()
+            actor.set_actor_location(unreal.Vector(start[0]*100,start[1]*100,ground_z+(150 if name=="ExplorerStart" else 50)),False,False)
+            actor.set_actor_rotation(unreal.Rotator(pitch=0,yaw=heading,roll=0),False)
     settings_actor = unreal.GameplayStatics.get_actor_of_class(world, unreal.WorldSettings)
     settings_actor.set_editor_property("default_game_mode", unreal.EditorAssetLibrary.load_blueprint_class(
         "/Game/VehicleTemplate/Blueprints/BP_VehicleAdvGameMode"))
