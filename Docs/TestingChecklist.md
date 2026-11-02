@@ -185,3 +185,20 @@ Scope: existing 4032 m map, no new missions/UT systems, no replacement transport
 - editor tooling: Landscape creation stalled in a rendering-enabled commandlet. Owned stalled process was stopped; full generation ran successfully in a regular GPU editor. -ExecutePythonScript callbacks require EditorPythonScripting.set_keep_python_script_alive(True); otherwise the editor exits after the synchronous script.
 
 Remaining human acceptance: protected Fab art/composition approval from eight local frames, physical keyboard comfort and complete TimeTrial gameplay. These are not replaced by automated scene checks. No new mission, inventory, save or survival systems were added.
+
+Final M2.3 delivery check: a new clone of commit 85bb904 (no copied Binaries/Intermediate/Saved) rebuilt successfully in 70.3 s after linking the documented external Toolkit. Fresh preparation reproduced manifest ae48f1f49a53d901ad00993776f08081d4efc297aa240b0659e3897cc67ed69c. M23FinalCleanLoad.log: five maps, 31 Blueprint classes, 1801 assets, zero missing Game dependencies, zero errors/warnings; loaded final terrain has 256 components and signature e691ebde4644455ee19145cdd02f70f64b2d76c4b39b45bb36b3ffbce1134460. Surface/envelope checks 406/401 passed; maximum sampled road gap 5.36 cm. The actual clean-clone map contains no acceptance sentinel; that fixture was confined to the separate regeneration copy.
+
+Final saved-terrain Standalone repeat (M23FinalStandalone.log / M23FinalStandalone.json): 1920x1080, 100% render scale, dynamic resolution off, 2400 frames; after the first 300, median 13.33 ms, p95 13.58 ms, p99 13.84 ms, maximum 66.96 ms; GPU median 6.53 ms. This repeat did not force/verify foreground activation. Startup streaming still has rare registration spikes; no configuration or visual quality was weakened to hide them.
+
+## Utility Van wheel rotation — 2026-11-02
+
+The initial current-session check already had a valid native VehicleAnimationInstance, Blueprint animation mode and live bone rotation. No replacement physics or manual Tick wheel simulation was necessary. The request was verified against actual movement rather than assuming a running AnimBP proved visible wheels.
+
+- editor-verified: 13-second PIE test checks all four physical rotation angles and the four corresponding bone quaternions separately. All four rotate; front steering exceeds 3 degrees. Actual mesh rendered in 129/130 sampled frames. Suspension displacement alone can no longer make this check pass.
+- editor-verified: native FBX export of the delivered skeletal mesh contains 134 nonzero bound vertices for each wheel bone (UV/normal seams included). Wheel geometry is bound to its own bones, not Root.
+- implemented: ImportUtilityVan.py and FixVanWheelAnim.py explicitly save AnimationBlueprint mode, ABP_UtilityVan and AlwaysTickPoseAndRefreshBones. Import asserts the binding survives Blueprint compilation. The repair script only configures animation; chassis/wheels/handling remain unchanged.
+- editor-verified: two real side-view PIE images show the user-supplied van during spin/steer. World render actors were hidden only in the temporary PIE session, retaining real collision; ending PIE restores the ordinary map. No protected Fab renders were sent for image analysis.
+
+Evidence: VanWheelAnimation.json, VanSkinWeights.json, VanWheelSpin_0.png / _1.png and VanWheels.log. Final fresh-reopen check is recorded after execution.
+
+Fresh-reopen wheel check: after the updated importer completed with 0 errors / 0 warnings, a new editor process loaded the saved AnimationBlueprint mode, ABP_UtilityVan and AlwaysTickPoseAndRefreshBones. The 13-second wheel-specific PIE test passed again for all four spin/physics pairs and front steering (VanWheelsReopen.log / VanWheelAnimation.json). Material/skeletal usage audit also passed. RuntimeHashSet metadata was queried directly: LH cells 128/256/512 m, each LoadingRange 2000 m and BlockOnSlowStreaming=true.

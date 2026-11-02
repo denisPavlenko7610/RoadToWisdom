@@ -86,7 +86,10 @@ def main():
     for prop in ('steering_action','throttle_action','brake_action','handbrake_action','look_around_action','toggle_camera_action','reset_vehicle_action'):
         default.set_editor_property(prop,off.get_editor_property(prop))
     sk=default.get_component_by_class(unreal.SkeletalMeshComponent)
-    sk.set_skeletal_mesh_asset(mesh);sk.set_anim_instance_class(anim.generated_class())
+    sk.set_skeletal_mesh_asset(mesh)
+    sk.set_editor_property('animation_mode',unreal.AnimationMode.ANIMATION_BLUEPRINT)
+    sk.set_editor_property('anim_class',anim.generated_class())
+    sk.set_editor_property('visibility_based_anim_tick_option',unreal.VisibilityBasedAnimTickOption.ALWAYS_TICK_POSE_AND_REFRESH_BONES)
     sk.set_editor_property('relative_location',unreal.Vector(0,0,0));sk.set_editor_property('relative_rotation',unreal.Rotator())
     sk.set_collision_profile_name('Vehicle');sk.set_simulate_physics(True)
     movement=default.get_component_by_class(unreal.ChaosWheeledVehicleMovementComponent)
@@ -99,6 +102,9 @@ def main():
         w.set_editor_property('wheel_class',EAL.load_blueprint_class(OUT+'/Blueprints/BP_UtilityVanWheel'+('Front' if i<2 else 'Rear')))
     movement.set_editor_property('wheel_setups',setup)
     unreal.BlueprintEditorLibrary.compile_blueprint(bp)
+    configured=unreal.get_default_object(bp.generated_class()).get_component_by_class(unreal.SkeletalMeshComponent)
+    assert configured.get_editor_property('anim_class')==anim.generated_class(),'Wheel animation binding lost during Blueprint compilation'
+    assert configured.get_editor_property('animation_mode')==unreal.AnimationMode.ANIMATION_BLUEPRINT,'Incorrect van animation mode'
     for path in ('/Game/VehicleTemplate/Blueprints/BP_VehicleAdvGameMode','/Game/VehicleTemplate/Blueprints/BP_VehicleAdvPlayerController'):
         obj=unreal.load_asset(path);cdo=unreal.get_default_object(obj.generated_class())
         cdo.set_editor_property('default_pawn_class' if 'GameMode' in path else 'vehicle_pawn_class',bp.generated_class())

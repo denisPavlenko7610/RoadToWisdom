@@ -2,9 +2,9 @@
 
 Measured 2026-11-02 after M2.3 terrain/acceptance changes.
 
-- Content: 624.71 MiB.
-- Tracked + pending source: 630.48 MiB.
-- .git: 654.65 MiB before final commit.
+- Content: 624.72 MiB.
+- Tracked + pending source: 630.50 MiB.
+- .git: 644.96 MiB before final commit.
 - Largest asset: 16.25 MiB.
 - Files >=50 MiB: 0; files >=100 MiB: 0; Git LFS pointers: 0.
 

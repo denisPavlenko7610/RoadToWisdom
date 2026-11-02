@@ -92,3 +92,7 @@ Van material check: run `Tools/Editor/VerifyUtilityVanMaterials.py` in the edito
 - `CaptureWorld.py`: eight actual local editor shots, including small/large settlements and the overlook. NoAI Fab renders are kept local for human art approval.
 
 The native editor repair ClearUnusedMaterialStreamingData refuses materials that use any texture. It removes stale streaming references from texture-free template materials without changing their parent or appearance.
+
+## Van wheel animation
+
+Run `FixVanWheelAnim.py` main() to persist the existing native wheel animation binding (editor, outside PIE). The importer applies the same settings. `VerifyVanWheelAnimation.py` main() starts a 13-second actual PIE drive and checks physical angles and bone rotations for all four wheels; it ends PIE automatically. Optional main(True) captures two isolated side views while retaining Landscape collision; only that temporary PIE world's environment rendering is hidden. The map is not saved or changed by this capture.
