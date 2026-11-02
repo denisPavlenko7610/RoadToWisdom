@@ -29,4 +29,7 @@ public:
     static bool LoadEditorRegion(FVector Center, FVector Extent, bool bLoad);
     UFUNCTION(BlueprintCallable, Category="QuietRoad|World")
     static UObject* GetPartitionSettings();
+    /** Drop obsolete streaming references only when the material uses no textures at all. */
+    UFUNCTION(BlueprintCallable, Category="QuietRoad|Repair")
+    static bool ClearUnusedMaterialStreamingData(UMaterialInterface* Material);
 };

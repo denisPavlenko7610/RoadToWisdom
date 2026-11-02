@@ -158,3 +158,5 @@ UTSave's LoadFromSlot validates/replaces its in-memory object atomically; SaveTo
 uses engine SaveGameToSlot, with no extra power-loss-safe write guarantee. World-state
 application is sequential: this slice prevalidates the sole fuse-box schema and identity.
 Rendered driving, physical keyboard tap/hold, and art acceptance still require checks.
+
+M2.3 (2026-11-02): no Toolkit module sources or gameplay contracts changed. World generation acceptance does not certify the legacy QuietRoad.Session mission tests on the new map. Clean builds still require the documented external Toolkit junctions.

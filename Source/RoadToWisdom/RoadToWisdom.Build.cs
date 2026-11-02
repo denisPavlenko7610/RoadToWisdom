@@ -18,7 +18,8 @@ public class RoadToWisdom : ModuleRules
 			"PhysicsCore",
 			"UMG",
 			"Slate",
-			"SlateCore"
+			"SlateCore",
+			"Json"
 		});
 
 		// UnrealTemplates domain modules this project calls directly (see

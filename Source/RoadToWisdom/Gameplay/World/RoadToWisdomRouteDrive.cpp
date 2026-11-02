@@ -27,7 +27,7 @@ namespace QRWRouteDrive
 	constexpr float WaypointRadiusCm = 2200.0f;   // advance to the next point inside 22 m
 	constexpr float StallSpeedCm = 40.0f;         // below this under throttle...
 	constexpr float StallTimeoutS = 8.0f;         // ...for this long = stuck
-	constexpr float MaxRunSeconds = 480.0f;
+	constexpr float MaxRunSeconds = 900.0f;
 	constexpr float OffroadLimitCm = 750.0f;      // 4.5 m half width + shoulder
 
 	struct FRouteState

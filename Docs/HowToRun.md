@@ -59,7 +59,7 @@ runpy.run_path(root + "Tools/World/VerifyWorld.py")["main"]()
 runpy.run_path(root + "Tools/World/CaptureWorld.py")
 ```
 
-VerifyWorld checks actual loaded Landscape collision, sample road contact, camper envelope clearance, building overlaps/foundations, instance counts, unique labels and VehicleStart. It records evidence in Saved/WorldGeneration. CaptureWorld uses a nonblocking editor tick callback for six real HighResShot views; leave the editor running until Screenshots.json appears.
+VerifyWorld checks actual loaded Landscape collision, sample road contact, camper envelope clearance, building overlaps/foundations, instance counts, unique labels and VehicleStart. It records evidence in Saved/WorldGeneration. CaptureWorld uses a nonblocking editor tick callback for eight real HighResShot views; leave the editor running until Screenshots.json appears.
 
 Programmatic surface/envelope checks and PIE streaming do not prove Chaos suspension/driving or foreground FPS. Full vehicle drive and Standalone profiling remain manual checks. No temporary vehicle is saved into the level.
 
@@ -82,3 +82,13 @@ Only the undamaged supplied model is imported. Rebuild its assets with the edito
 SourceArt/UtilityVan contains the undamaged OBJ, material groups, five textures and wheel centers. The native editor helper creates Root + four wheel bones, rigid skin weights, one chassis collision box and a VehicleAnimationInstance graph with WheelController. Runtime uses the stock template input/camera code and Chaos wheels. Assets live in Vehicles/UtilityVan/{Meshes,Materials,Textures,Physics,Animation,Blueprints}. Do not run synchronous Interchange import through Rider's task-graph callback; use this commandlet. Never regenerate Landscape with NullRHI.
 
 Van material check: run `Tools/Editor/VerifyUtilityVanMaterials.py` in the editor, and again while PIE is active. It checks the saved skeletal usage on the base/instance, all five texture references, skeletal slots and the actual pawn component. A correct editor preview alone does not establish PIE/cooked shader support. The importer saves the skeletal usage explicitly.
+
+## M2.3 acceptance tools
+
+- `VerifyWorldAssets.py`: Asset Registry / native Blueprint parents and compilation, then loads VehicleBasic, Offroad, TimeTrial, pilot and main map. Run as an editor Python commandlet with the editor closed; check the log for Blueprint errors as well as its JSON result.
+- `VerifyWorldBranches.py`: run in the normal editor on the main map. It starts PIE and drives the existing van down all seven non-Main routes. No vehicle or map edits are saved. Main has its separate QRW.RouteDrive acceptance. Results: M23Branches.json.
+- `VerifyWorldStreaming.py`: separate PIE stress sweep of the player streaming source across the region, checking actual Landscape collision and loaded actor sets. This uses teleports, not vehicle-driving physics.
+- `VerifyWorldRegeneration.py`: destructive generation acceptance **only in an isolated project copy whose path contains M23Clean**. Prepare its manifest first. Two full GPU-editor generations compare instance signatures, collision checks and a manual sentinel. Never run this fixture on production content. Commandlet Landscape generation can stall even with AllowCommandletRendering; use a regular GPU editor process.
+- `CaptureWorld.py`: eight actual local editor shots, including small/large settlements and the overlook. NoAI Fab renders are kept local for human art approval.
+
+The native editor repair ClearUnusedMaterialStreamingData refuses materials that use any texture. It removes stale streaming references from texture-free template materials without changing their parent or appearance.

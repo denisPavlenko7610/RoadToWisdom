@@ -186,6 +186,11 @@ def main():
     distance = np.full_like(terrain, 1e7);
     bed = np.zeros_like(terrain);
     road_width = np.zeros_like(terrain)
+    # Blend overlapping earthwork shoulders continuously. Selecting only the nearest
+    # road creates a height discontinuity at Voronoi boundaries between routes.
+    weighted_bed = np.zeros_like(terrain)
+    weight_sum = np.zeros_like(terrain)
+    max_influence = np.zeros_like(terrain)
     # Local bounding rectangles avoid a world-sized allocation per road segment.
     for road in roads:
         for a, b in zip(road["points"], road["points"][1:]):
@@ -208,10 +213,17 @@ def main():
             target[mask] = d[mask]
             bed[jmin:jmax, imin:imax][mask] = (az + (bz - az) * t)[mask]
             road_width[jmin:jmax, imin:imax][mask] = road["half_width"]
-    shoulder = np.maximum(90 * max(.35, scale), np.abs(terrain-bed)*4.0)
-    shoulder = np.minimum(shoulder, 400*max(.4,scale))
-    falloff = 1 - smooth(np.clip((distance - (road_width + 3)) / shoulder, 0, 1))
-    terrain = terrain * (1 - falloff) + bed * falloff
+            segment_bed = az + (bz-az)*t
+            shoulder = np.minimum(np.maximum(90*max(.35,scale), np.abs(terrain[jmin:jmax,imin:imax]-segment_bed)*4),400*max(.4,scale))
+            influence = 1-smooth(np.clip((d-(road["half_width"]+3))/shoulder,0,1))
+            weighted_bed[jmin:jmax,imin:imax] += segment_bed*influence
+            weight_sum[jmin:jmax,imin:imax] += influence
+            np.maximum(max_influence[jmin:jmax,imin:imax],influence,out=max_influence[jmin:jmax,imin:imax])
+    blended_bed = np.divide(weighted_bed, weight_sum, out=terrain.copy(), where=weight_sum>1e-9)
+    terrain = terrain*(1-max_influence)+blended_bed*max_influence
+    # Keep the already validated road/camper corridor exactly on its original bed.
+    core = 1-smooth(np.clip((distance-(road_width+3))/12,0,1))
+    terrain = terrain*(1-core)+bed*core
     # Serialization quantization exactly matches Landscape z scale 256 (2 cm).
     raw = np.clip(np.rint(32768 + terrain * 50), 0, 65535).astype("<u2")
     terrain = (raw.astype(np.float32) - 32768) * .02

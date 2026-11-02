@@ -167,3 +167,16 @@ UObject* UQRWorldEditorLibrary::GetPartitionSettings()
     UWorld* World=GEditor->GetEditorWorldContext().World();
     return World && World->GetWorldPartition()?World->GetWorldPartition()->RuntimeHash.Get():nullptr;
 }
+
+#include "Materials/MaterialInterface.h"
+bool UQRWorldEditorLibrary::ClearUnusedMaterialStreamingData(UMaterialInterface* Material)
+{
+    if (!Material) return false;
+    TArray<UTexture*> UsedTextures;
+    Material->GetUsedTextures(UsedTextures);
+    if (!UsedTextures.IsEmpty()) return false;
+    Material->Modify();
+    Material->SetTextureStreamingData({});
+    Material->MarkPackageDirty();
+    return true;
+}

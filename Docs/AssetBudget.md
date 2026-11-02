@@ -1,10 +1,10 @@
 # Asset budget
 
-Measured 2026-10-25 after the undamaged Utility Van import.
+Measured 2026-11-02 after M2.3 terrain/acceptance changes.
 
-- Content: 625.69 MiB.
-- Tracked + pending source: 631.41 MiB.
-- .git: 654.40 MiB before final commit.
+- Content: 624.71 MiB.
+- Tracked + pending source: 630.48 MiB.
+- .git: 654.65 MiB before final commit.
 - Largest asset: 16.25 MiB.
 - Files >=50 MiB: 0; files >=100 MiB: 0; Git LFS pointers: 0.
 
