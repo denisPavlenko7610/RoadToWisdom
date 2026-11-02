@@ -195,6 +195,7 @@ happen in this session. See also GDD §20 (Definition of Done).
 ## 6. Git
 
 - Commit per meaningful stage; **commit messages in English**.
+- Commit messages must contain only a concise title, with no body or trailers. Never add Co-Authored-By, Signed-off-by, AI attribution, or similar signatures.
 
 - No destructive git operations (history rewrite, hard resets of shared work,
 
