@@ -96,3 +96,11 @@ The native editor repair ClearUnusedMaterialStreamingData refuses materials that
 ## Van wheel animation
 
 Run `FixVanWheelAnim.py` main() to persist the existing native wheel animation binding (editor, outside PIE). The importer applies the same settings. `VerifyVanWheelAnimation.py` main() starts a 13-second actual PIE drive and checks physical angles and bone rotations for all four wheels; it ends PIE automatically. Optional main(True) captures two isolated side views while retaining Landscape collision; only that temporary PIE world's environment rendering is hidden. The map is not saved or changed by this capture.
+
+Wheel visibility: MI_UtilityVanWheels inherits the same five textures from M_UtilityVan. UV-bound steel vents and a valve make spin visible; the shader has no Time-driven rotation. Only wheel slots use this instance; the body retains MI_UtilityVan. Import explicitly writes edited material/wheel structs back to their Unreal arrays. The pawn uses BP_UtilityVanWheelFront/Rear (35.95 cm), not native Offroad wheels (50 cm).
+
+The wheel regression also checks actual skinned vertices relative to each wheel bone, excluding suspension movement as a false positive. QRVehicleEditorLibrary provides this readback only in the editor module.
+
+Motion blur is disabled globally by r.DefaultFeature.MotionBlur=False and r.MotionBlurQuality=0. The van mesh also disables per-bone blur. When importing the van, the editor helper restores the LOD active/required bone lists from skin sections; wheel regression checks use the render-path matrices, not the unfiltered bone cache.
+
+Utility Van lighting: press L while driving to toggle headlights and rear running lights. Braking or the handbrake brightens the rear lights; verify placement and appearance in PIE.

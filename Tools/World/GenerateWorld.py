@@ -246,7 +246,7 @@ def ensure_collision(mesh):
     return result
 
 
-def configure_streaming():
+def configure_streaming(manifest):
     settings = LIB.get_partition_settings()
     layers = 0
     for obj in unreal.ObjectIterator():
@@ -259,7 +259,6 @@ def configure_streaming():
                 obj.set_editor_property("bBlockOnSlowStreaming", True)
                 layers += 1
     assert layers, "No spatial World Partition grids configured"
-    manifest = json.loads((ROOT / "Saved/WorldGeneration/World.json").read_text())
     sx, sy, _ = manifest["roads"][0]["points"][0]
     for actor in EAS.get_all_level_actors():
         if isinstance(actor, unreal.LandscapeStreamingProxy):
@@ -270,7 +269,7 @@ def configure_streaming():
             LIB.set_spatial_loading(actor, not contains_start)
 
 
-def organize_scene():
+def organize_scene(manifest):
     for actor in EAS.get_all_level_actors():
         tags = {str(t) for t in actor.tags}
         label = actor.get_actor_label()
@@ -290,7 +289,7 @@ def organize_scene():
             actor.set_folder_path(folder)
             if "QRWorld.Terrain" in tags and isinstance(actor, unreal.LandscapeStreamingProxy):
                 center, extent = actor.get_actor_bounds(False)
-                half = json.loads((ROOT / "Saved/WorldGeneration/World.json").read_text())["settings"]["WorldSize"]*50
+                half = manifest["settings"]["WorldSize"]*50
                 ix = round((center.x-extent.x+half)/50400)
                 iy = round((center.y-extent.y+half)/50400)
                 actor.set_actor_label(f"QRW_Terrain_Tile_X{ix:02d}_Y{iy:02d}")
@@ -405,8 +404,8 @@ def main(category="All"):
     settings_actor = unreal.GameplayStatics.get_actor_of_class(world, unreal.WorldSettings)
     settings_actor.set_editor_property("default_game_mode", unreal.EditorAssetLibrary.load_blueprint_class(
         "/Game/VehicleTemplate/Blueprints/BP_VehicleAdvGameMode"))
-    configure_streaming()
-    organize_scene()
+    configure_streaming(manifest)
+    organize_scene(manifest)
     assert LES.save_current_level()
     unreal.EditorAssetLibrary.save_directory(OUT, only_if_is_dirty=True, recursive=True)
     report = dict(map=path, category=category, size=manifest["settings"]["WorldSize"],

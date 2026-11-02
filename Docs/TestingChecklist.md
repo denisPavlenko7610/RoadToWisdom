@@ -202,3 +202,22 @@ The initial current-session check already had a valid native VehicleAnimationIns
 Evidence: VanWheelAnimation.json, VanSkinWeights.json, VanWheelSpin_0.png / _1.png and VanWheels.log. Final fresh-reopen check is recorded after execution.
 
 Fresh-reopen wheel check: after the updated importer completed with 0 errors / 0 warnings, a new editor process loaded the saved AnimationBlueprint mode, ABP_UtilityVan and AlwaysTickPoseAndRefreshBones. The 13-second wheel-specific PIE test passed again for all four spin/physics pairs and front steering (VanWheelsReopen.log / VanWheelAnimation.json). Material/skeletal usage audit also passed. RuntimeHashSet metadata was queried directly: LH cells 128/256/512 m, each LoadingRange 2000 m and BlockOnSlowStreaming=true.
+
+## Utility Van visible wheel rotation correction — 2026-11-02
+
+- editor-verified: the old PIE test proved bone/Chaos rotation but did not establish readable rotation of the nearly axisymmetric wheel faces. Two closer side captures now show the wheel vent pattern changing orientation during movement.
+- fixed: Unreal struct-array iteration returns copies. ImportUtilityVan now writes each edited FSkeletalMaterial/FChaosWheelSetup back by index. The saved pawn and actual PIE wheels use BP_UtilityVanWheelFront/Rear at 35.95 cm; before correction the pawn still used native Offroad classes at 50 cm.
+- editor-verified: MI_UtilityVanWheels shares M_UtilityVan and all five original textures. UV-bound steel vents/valve make spin readable; no Time input, manual spin Tick or new runtime animation system. Body detail strength remains zero. Both Editor and actual PIE materials passed.
+- editor-verified: repeated importer commandlet succeeded with 0 errors/0 warnings (WheelVisualImport.log). Full editor restart then 13-second PIE drive passed physical and bone spin for all four wheels, exact van wheel classes, front steering and rendered mesh (WheelVisualReopen.log, VanWheelReopen.json). Two saved close side captures were visually inspected. Temporary isolated capture only hides environment rendering inside PIE; saved world actors are untouched.
+- not-run: full 12.2 km route acceptance/performance was not repeated after correcting wheel radius. Earlier route results used the old 50 cm wheel configuration and are historical evidence, not certification of the corrected setup.
+
+- editor-verified follow-up: WheelFinalBuild.log succeeded. After restarting the editor, WheelFinalReopen.log records each of four skinned-vertex rotation checks passing as well as physical spin, steering and material checks. The test computes current skinned positions in component space using UE render weights and current bone matrices, and compares wheel-relative X/Z coordinates so suspension travel alone cannot pass. Earlier CPU cached-vertex readback returned a reference-pose artifact and is not valid evidence. Close side captures were inspected; visibility from every player camera and lighting condition is not established.
+
+## Spawned van: render bone fix and global motion blur ? 2026-11-02
+
+- Root cause: the generated skeletal mesh LOD had an empty ActiveBoneIndices list. Wheel bones and physics rotated, but render matrices fell back to identity and rendered vertices stayed in the reference pose. Prior checks using CacheRefToLocalMatrices were false positives for the GPU render path; their visual completion claims are superseded by this correction.
+- Fixed: the editor rig builder and importer rebuild active/required LOD bones from the section BoneMap and their ancestors. The existing mesh was repaired, saved, imported again and reopened. UnrealBuildTool and the importer commandlet succeeded (VanActiveRepairBuild.log and VanFinalImport.log).
+- Editor-verified after restart: the existing map's spawned van passed per-wheel rendered-vertex rotation using GetCurrentRefToLocalMatrices (the same active-bone path as rendering), physical spin, steering, class, material and no per-bone motion blur checks (VanFinalReopen.log). Screenshots use a temporary side view in PIE; no map actor was saved.
+- Global project settings disable motion blur using r.DefaultFeature.MotionBlur=False and r.MotionBlurQuality=0. Values were verified in the editor and PIE after restart. Full road-network driving and visual evaluation from every camera were not repeated.
+
+- Utility Van lighting: manual-check-required — in PIE, check L, headlights, rear running lights, brake and handbrake, including light placement.

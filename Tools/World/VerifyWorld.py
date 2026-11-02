@@ -89,14 +89,14 @@ def main():
                 if box: errors.append("Vehicle envelope blocked by " + box.to_dict()[
                     "hit_actor"].get_actor_label() + f" at {road['name']}:{index}")
     buildings = [a for a in actors if "QRWorld.POI" in [str(t) for t in a.tags]]
+    # Ignore every non-Landscape actor for foundation and start-marker traces.
+    ignore = [a for a in actors if not isinstance(a, unreal.LandscapeProxy)]
     for i, actor in enumerate(buildings):
         origin, extent = actor.get_actor_bounds(False)
         for other in buildings[i + 1:]:
             b, e = other.get_actor_bounds(False)
             if abs(origin.x - b.x) < extent.x + e.x and abs(origin.y - b.y) < extent.y + e.y:
                 errors.append("Overlapping buildings: " + actor.get_actor_label() + " / " + other.get_actor_label())
-        # Ignore every non-Landscape actor to compare actual foundation against terrain.
-        ignore = [a for a in actors if not isinstance(a, unreal.LandscapeProxy)]
         hit = unreal.SystemLibrary.line_trace_single(world, origin + unreal.Vector(0, 0, 2000),
                                                      origin - unreal.Vector(0, 0, 3000),
                                                      unreal.TraceTypeQuery.ECC_VISIBILITY, False, ignore,
@@ -106,7 +106,6 @@ def main():
         elif abs((origin.z - extent.z) - hit.to_dict()["location"].z) > 60:
             errors.append("Floating/buried foundation: " + actor.get_actor_label())
     assert sum(a.get_actor_label() == "VehicleStart" for a in actors) == 1, "missing/duplicate VehicleStart"
-    ignore = [a for a in actors if not isinstance(a, unreal.LandscapeProxy)]
     for actor in actors:
         name = actor.get_actor_label()
         if name not in ("VehicleStart", "ExplorerStart"): continue

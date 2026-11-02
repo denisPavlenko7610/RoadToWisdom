@@ -1,5 +1,10 @@
 #include "Vehicle/QRVehicleEditorLibrary.h"
 #include "Engine/StaticMesh.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Rendering/SkeletalMeshRenderData.h"
+#include "Rendering/SkeletalMeshLODRenderData.h"
+#include "Rendering/SkeletalMeshModel.h"
+#include "Rendering/SkeletalMeshLODModel.h"
 #include "Engine/SkeletalMesh.h"
 #include "Animation/Skeleton.h"
 #include "Animation/AnimBlueprint.h"
@@ -22,6 +27,44 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "EdGraph/EdGraphNodeUtils.h"
+
+TArray<FVector> UQRVehicleEditorLibrary::GetSkinnedVertexPositions(USkinnedMeshComponent* Component)
+{
+    TArray<FVector> Positions;
+    if (!Component || !Component->GetSkinnedAsset()) return Positions;
+    const FSkeletalMeshRenderData* Data = Component->GetSkeletalMeshRenderData();
+    const FSkinWeightVertexBuffer* Weights = Component->GetSkinWeightBuffer(0);
+    if (!Data || Data->LODRenderData.IsEmpty() || !Weights) return Positions;
+    TArray<FMatrix44f> Matrices;
+    Component->GetCurrentRefToLocalMatrices(Matrices, 0);
+    TArray<FVector3f> Vertices;
+    USkinnedMeshComponent::ComputeSkinnedPositions(Component, Vertices, Matrices, Data->LODRenderData[0], *Weights);
+    Positions.Reserve(Vertices.Num());
+    for (const FVector3f& Vertex : Vertices) Positions.Emplace(Vertex);
+    return Positions;
+}
+
+bool UQRVehicleEditorLibrary::RepairVanActiveBones(USkeletalMesh* Mesh)
+{
+    if (!Mesh || !Mesh->GetImportedModel() || Mesh->GetImportedModel()->LODModels.IsEmpty()) return false;
+    Mesh->Modify();
+    const FReferenceSkeleton& Ref = Mesh->GetRefSkeleton();
+    for (FSkeletalMeshLODModel& LOD : Mesh->GetImportedModel()->LODModels)
+    {
+        TSet<FBoneIndexType> Used;
+        for (const FSkelMeshSection& Section : LOD.Sections)
+            for (const FBoneIndexType Bone : Section.BoneMap)
+                for (int32 Current = Bone; Current != INDEX_NONE; Current = Ref.GetParentIndex(Current))
+                    Used.Add(static_cast<FBoneIndexType>(Current));
+        LOD.ActiveBoneIndices = Used.Array();
+        LOD.ActiveBoneIndices.Sort();
+        LOD.RequiredBones = LOD.ActiveBoneIndices;
+    }
+    Mesh->InvalidateDeriveDataCacheGUID();
+    Mesh->PostEditChange();
+    Mesh->MarkPackageDirty();
+    return true;
+}
 
 USkeletalMesh* UQRVehicleEditorLibrary::BuildVanRig(UStaticMesh* Source,const FString& AssetFolder,const TArray<FVector>& Centers)
 {
@@ -82,6 +125,7 @@ USkeletalMesh* UQRVehicleEditorLibrary::BuildVanRig(UStaticMesh* Source,const FS
     Physics->UpdateBodySetupIndexMap();
     Physics->UpdateBoundsBodiesArray();
     Mesh->SetPhysicsAsset(Physics);
+    if (!RepairVanActiveBones(Mesh)) return nullptr;
     for (UObject* Asset:TArray<UObject*>{Skeleton,Mesh,Physics})
     { FAssetRegistryModule::AssetCreated(Asset); Asset->MarkPackageDirty(); }
     return Mesh;

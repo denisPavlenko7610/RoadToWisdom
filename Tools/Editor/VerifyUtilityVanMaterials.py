@@ -9,20 +9,25 @@ def main():
     lib=unreal.MaterialEditingLibrary
     material=unreal.load_asset(OUT+'Materials/M_UtilityVan')
     instance=unreal.load_asset(OUT+'Materials/MI_UtilityVan')
+    wheels=unreal.load_asset(OUT+'Materials/MI_UtilityVanWheels')
     mesh=unreal.load_asset(OUT+'Meshes/SK_UtilityVan')
-    assert material and instance and mesh,'Missing van material/mesh assets'
+    assert material and instance and wheels and mesh,'Missing van material/mesh assets'
     assert instance.get_editor_property('parent')==material,'Wrong material instance parent'
-    for asset in (material,instance):
+    assert wheels.get_editor_property('parent')==material,'Wrong wheel material parent'
+    assert lib.get_material_instance_scalar_parameter_value(wheels,'WheelDetailStrength')==1.0,'Wheel detail disabled'
+    for asset in (material,instance,wheels):
         assert lib.has_material_usage(asset,unreal.MaterialUsage.MATUSAGE_SKELETAL_MESH),asset.get_name()+' lacks skeletal usage'
     textures={}
     for name in ('BaseColor','Normal','Metallic','Roughness','AO'):
         texture=lib.get_material_instance_texture_parameter_value(instance,name)
         assert texture and texture.get_path_name()==OUT+'Textures/T_UtilityVan_'+name+'.T_UtilityVan_'+name,'Missing/wrong '+name+' texture'
         assert texture.get_editor_property('srgb')==(name=='BaseColor'),'Incorrect sRGB for '+name
+        assert lib.get_material_instance_texture_parameter_value(wheels,name)==texture,'Wheel texture mismatch: '+name
         textures[name]=texture.get_path_name()
     slots=mesh.get_editor_property('materials')
     assert len(slots)==5,'Unexpected van slot count'
-    assert all(s.get_editor_property('material_interface')==instance for s in slots),'Missing/wrong skeletal mesh material'
+    expected=[wheels if str(s.get_editor_property('material_slot_name')).startswith('Wheel_') else instance for s in slots]
+    assert [s.get_editor_property('material_interface') for s in slots]==expected,'Missing/wrong skeletal mesh material'
     bp=unreal.load_asset(OUT+'Blueprints/BP_UtilityVan_Pawn')
     default=unreal.get_default_object(bp.generated_class())
     components=[default.get_component_by_class(unreal.SkeletalMeshComponent)]
@@ -34,7 +39,7 @@ def main():
     for component in components:
         assert component and component.get_skinned_asset()==mesh,'Wrong pawn mesh'
         assert component.get_num_materials()==5,'Wrong pawn material count'
-        assert all(component.get_material(i)==instance for i in range(5)),'Pawn overrides van materials'
+        assert all(component.get_material(i)==expected[i] for i in range(5)),'Pawn overrides van materials'
     result={'passed':True,'context':'PIE' if world else 'Editor','skeletal_usage':True,
             'material':instance.get_path_name(),'slots':[str(s.get_editor_property('material_slot_name')) for s in slots],
             'textures':textures,'checked_components':len(components)}

@@ -11,3 +11,5 @@ Measured 2026-11-02 after M2.3 terrain/acceptance changes.
 Ordinary Git only. Required Landscape/World Partition External Actors are included. Their hash filenames are engine-owned and must not be renamed. Own assets use M_/MI_/SM_/SK_/SKEL_/PHYS_/ABP_/BP_/T_ prefixes and category folders. The original Fab content remains unchanged. Only the undamaged Utility Van and five 1K textures are imported; its damaged mesh/textures are excluded. SourceArt retains the clean OBJ and source textures for reproducible import.
 
 Run `python Tools/CheckAssetBudget.py --json` for current values. Saved, Intermediate, Binaries and DDC remain ignored.
+
+Wheel visibility correction (2026-11-02): budget check passed; Content 625.738 MiB, tracked + pending source 631.518 MiB. No files >=50 MiB or >=100 MiB, no LFS. One small wheel material instance reuses the existing five textures. Measurement includes pre-existing local world edits.
