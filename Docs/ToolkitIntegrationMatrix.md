@@ -160,3 +160,32 @@ application is sequential: this slice prevalidates the sole fuse-box schema and 
 Rendered driving, physical keyboard tap/hold, and art acceptance still require checks.
 
 M2.3 (2026-11-02): no Toolkit module sources or gameplay contracts changed. World generation acceptance does not certify the legacy QuietRoad.Session mission tests on the new map. Clean builds still require the documented external Toolkit junctions.
+
+2026-11-02 input review: no Toolkit API or plugin sources changed. Vehicle action
+release is owned by the game/template pawn. UBT reports pre-existing missing
+StructUtils plugin declarations for UTFoundation, UTItems, UTSave and
+UTWorldMechanics; track fixes in the sibling Toolkit repository, not junctions.
+
+
+## Multi-object save integration - 2026-11-03
+
+Game coordinator now matches all loaded IUTSaveable actors by stable ID and exact
+captured state struct, separately checking the relay fuse's mission invariants.
+CaptureWorldState/ApplyWorldState and section serialization remain Toolkit-owned;
+no plugin sources or new save framework were introduced. Rejected apply attempts
+compensation using the previous world snapshot. If compensation fails, further
+save/restore is blocked in that UWorld until reload. Arbitrary actor semantics and
+silent/repeatable RestoreState remain the actor author's responsibility.
+
+World v1 and other section versions are unchanged. Existing one-object schemas
+round-trip; old disk files were not separately supplied/tested. A different required
+actor set needs explicit game migration. Current strict policy requires all actors
+loaded; there is no cache or replay for unloaded World Partition cells.
+
+compiled and editor-verified: MultiSaveBuild.log, SaveFixtureBuild.log and
+MultiSaveTests.log in Saved/Logs; Saved/Automation/MultiSave/index.json reports
+both Persistence and RadioHold passed (negative-case warnings expected).
+UTSave, UTItems/Inventory, UTInteraction and UTWorldMechanics door restore/lever
+composition exercised in the isolated fixture. UTProgression and Physics were not
+newly integrated or certified. Existing Toolkit StructUtils/deprecated API warnings
+remain sibling-repository issues, not patched through junctions.

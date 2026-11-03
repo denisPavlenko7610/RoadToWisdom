@@ -44,7 +44,6 @@ class ARoadToWisdomPawn : public AWheeledVehiclePawn
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> ChaosVehicleMovement;
 
 protected:
-
 	/** Steering Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* SteeringAction;
@@ -113,22 +112,27 @@ public:
 	// End Actor interface
 
 protected:
-
 	/** Handles steering input */
 	void Steering(const FInputActionValue& Value);
 
+	void StopSteering(const FInputActionValue& Value);
+
 	/** Handles throttle input */
 	void Throttle(const FInputActionValue& Value);
+
+	void StopThrottle(const FInputActionValue& Value);
 
 	/** Handles brake input */
 	void Brake(const FInputActionValue& Value);
 
 	/** Handles brake start/stop inputs */
 	void StartBrake(const FInputActionValue& Value);
+
 	void StopBrake(const FInputActionValue& Value);
 
 	/** Handles handbrake start/stop inputs */
 	void StartHandbrake(const FInputActionValue& Value);
+
 	void StopHandbrake(const FInputActionValue& Value);
 
 	/** Handles look around input */
@@ -141,7 +145,6 @@ protected:
 	void ResetVehicle(const FInputActionValue& Value);
 
 public:
-
 	/** Handle steering input by input actions or mobile interface */
 	UFUNCTION(BlueprintCallable, Category="Input")
 	void DoSteering(float SteeringValue);
@@ -183,7 +186,6 @@ public:
 	void DoResetVehicle();
 
 protected:
-
 	/** Called when the brake lights are turned on or off */
 	UFUNCTION(BlueprintImplementableEvent, Category="Vehicle")
 	void BrakeLights(bool bBraking);
@@ -194,13 +196,32 @@ protected:
 
 public:
 	/** Returns the front spring arm subobject */
-	FORCEINLINE USpringArmComponent* GetFrontSpringArm() const { return FrontSpringArm; }
+	FORCEINLINE USpringArmComponent* GetFrontSpringArm() const
+	{
+		return FrontSpringArm;
+	}
+
 	/** Returns the front camera subobject */
-	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FrontCamera; }
+	FORCEINLINE UCameraComponent* GetFollowCamera() const
+	{
+		return FrontCamera;
+	}
+
 	/** Returns the back spring arm subobject */
-	FORCEINLINE USpringArmComponent* GetBackSpringArm() const { return BackSpringArm; }
+	FORCEINLINE USpringArmComponent* GetBackSpringArm() const
+	{
+		return BackSpringArm;
+	}
+
 	/** Returns the back camera subobject */
-	FORCEINLINE UCameraComponent* GetBackCamera() const { return BackCamera; }
+	FORCEINLINE UCameraComponent* GetBackCamera() const
+	{
+		return BackCamera;
+	}
+
 	/** Returns the cast Chaos Vehicle Movement subobject */
-	FORCEINLINE const TObjectPtr<UChaosWheeledVehicleMovementComponent>& GetChaosVehicleMovement() const { return ChaosVehicleMovement; }
+	FORCEINLINE const TObjectPtr<UChaosWheeledVehicleMovementComponent>& GetChaosVehicleMovement() const
+	{
+		return ChaosVehicleMovement;
+	}
 };

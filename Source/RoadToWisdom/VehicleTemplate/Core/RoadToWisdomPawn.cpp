@@ -58,24 +58,27 @@ void ARoadToWisdomPawn::SetupPlayerInputComponent(class UInputComponent* PlayerI
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
-	{
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 		// steering 
 		EnhancedInputComponent->BindAction(SteeringAction, ETriggerEvent::Triggered, this, &ARoadToWisdomPawn::Steering);
-		EnhancedInputComponent->BindAction(SteeringAction, ETriggerEvent::Completed, this, &ARoadToWisdomPawn::Steering);
+		EnhancedInputComponent->BindAction(SteeringAction, ETriggerEvent::Completed, this, &ARoadToWisdomPawn::StopSteering);
+		EnhancedInputComponent->BindAction(SteeringAction, ETriggerEvent::Canceled, this, &ARoadToWisdomPawn::StopSteering);
 
 		// throttle 
 		EnhancedInputComponent->BindAction(ThrottleAction, ETriggerEvent::Triggered, this, &ARoadToWisdomPawn::Throttle);
-		EnhancedInputComponent->BindAction(ThrottleAction, ETriggerEvent::Completed, this, &ARoadToWisdomPawn::Throttle);
+		EnhancedInputComponent->BindAction(ThrottleAction, ETriggerEvent::Completed, this, &ARoadToWisdomPawn::StopThrottle);
+		EnhancedInputComponent->BindAction(ThrottleAction, ETriggerEvent::Canceled, this, &ARoadToWisdomPawn::StopThrottle);
 
 		// break 
 		EnhancedInputComponent->BindAction(BrakeAction, ETriggerEvent::Triggered, this, &ARoadToWisdomPawn::Brake);
 		EnhancedInputComponent->BindAction(BrakeAction, ETriggerEvent::Started, this, &ARoadToWisdomPawn::StartBrake);
 		EnhancedInputComponent->BindAction(BrakeAction, ETriggerEvent::Completed, this, &ARoadToWisdomPawn::StopBrake);
+		EnhancedInputComponent->BindAction(BrakeAction, ETriggerEvent::Canceled, this, &ARoadToWisdomPawn::StopBrake);
 
 		// handbrake 
 		EnhancedInputComponent->BindAction(HandbrakeAction, ETriggerEvent::Started, this, &ARoadToWisdomPawn::StartHandbrake);
 		EnhancedInputComponent->BindAction(HandbrakeAction, ETriggerEvent::Completed, this, &ARoadToWisdomPawn::StopHandbrake);
+		EnhancedInputComponent->BindAction(HandbrakeAction, ETriggerEvent::Canceled, this, &ARoadToWisdomPawn::StopHandbrake);
 
 		// look around 
 		EnhancedInputComponent->BindAction(LookAroundAction, ETriggerEvent::Triggered, this, &ARoadToWisdomPawn::LookAround);
@@ -86,9 +89,13 @@ void ARoadToWisdomPawn::SetupPlayerInputComponent(class UInputComponent* PlayerI
 		// reset the vehicle 
 		EnhancedInputComponent->BindAction(ResetVehicleAction, ETriggerEvent::Triggered, this, &ARoadToWisdomPawn::ResetVehicle);
 	}
-	else
-	{
-		UE_LOG(LogRoadToWisdom, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
+	else {
+		UE_LOG(
+			LogRoadToWisdom, Error,
+			TEXT(
+				"'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."
+			), *GetNameSafe(this)
+		);
 	}
 }
 
@@ -133,6 +140,17 @@ void ARoadToWisdomPawn::Throttle(const FInputActionValue& Value)
 {
 	// route the input
 	DoThrottle(Value.Get<float>());
+}
+
+void ARoadToWisdomPawn::StopSteering(const FInputActionValue& Value)
+{
+	ChaosVehicleMovement->SetSteeringInput(0.0f);
+}
+
+void ARoadToWisdomPawn::StopThrottle(const FInputActionValue& Value)
+{
+	// Releasing the accelerator must not clear a brake held at the same time.
+	ChaosVehicleMovement->SetThrottleInput(0.0f);
 }
 
 void ARoadToWisdomPawn::Brake(const FInputActionValue& Value)
@@ -191,11 +209,9 @@ void ARoadToWisdomPawn::DoSteering(float SteeringValue)
 
 void ARoadToWisdomPawn::DoThrottle(float ThrottleValue)
 {
-	// add the input
-	ChaosVehicleMovement->SetThrottleInput(ThrottleValue);
-
-	// reset the brake input
-	ChaosVehicleMovement->SetBrakeInput(0.0f);
+	// Brake actions may trigger only on press/release. Never erase their held
+	// value from the continuously triggered accelerator; braking takes priority.
+	ChaosVehicleMovement->SetThrottleInput(ChaosVehicleMovement->GetBrakeInput() > 0.0f ? 0.0f : ThrottleValue);
 }
 
 void ARoadToWisdomPawn::DoBrake(float BrakeValue)
@@ -266,7 +282,9 @@ void ARoadToWisdomPawn::DoResetVehicle()
 	ResetRotation.Roll = 0.0f;
 
 	// teleport the actor to the reset spot and reset physics
-	SetActorTransform(FTransform(ResetRotation, ResetLocation, FVector::OneVector), false, nullptr, ETeleportType::TeleportPhysics);
+	SetActorTransform(
+		FTransform(ResetRotation, ResetLocation, FVector::OneVector), false, nullptr, ETeleportType::TeleportPhysics
+	);
 
 	GetMesh()->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
 	GetMesh()->SetPhysicsLinearVelocity(FVector::ZeroVector);
@@ -277,19 +295,18 @@ void ARoadToWisdomPawn::FlippedCheck()
 	// check the difference in angle between the mesh's up vector and world up
 	const float UpDot = FVector::DotProduct(FVector::UpVector, GetMesh()->GetUpVector());
 
-	if (UpDot < FlipCheckMinDot)
-	{
+	if (UpDot < FlipCheckMinDot) {
 		// is this the second time we've checked that the vehicle is still flipped?
-		if (bPreviousFlipCheck)
-		{
+		if (bPreviousFlipCheck) {
 			// reset the vehicle to upright
 			DoResetVehicle();
 		}
-		
+
 		// set the flipped check flag so the next check resets the car
 		bPreviousFlipCheck = true;
 
-	} else {
+	}
+	else {
 
 		// we're upright. reset the flipped check flag
 		bPreviousFlipCheck = false;

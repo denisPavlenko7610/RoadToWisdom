@@ -14,6 +14,7 @@
 #include "UTWorldStateSubsystem.h"
 #include "UTInventoryComponent.h"
 #include "UTLever.h"
+#include "EngineUtils.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 
@@ -41,6 +42,32 @@ namespace
 		}
 		return true;
 	}
+
+	// UT intentionally skips unconfigured actors; a game session must not silently
+	// lose authored progress. Streaming-in/out saveables require a separate policy.
+	bool ValidateWorld(
+		UWorld* World, const FUTWorldStateSnapshot& Saved,
+		const FUTWorldStateSnapshot& Current
+	)
+	{
+		TMap<FName, const FInstancedStruct*> States;
+		for (const auto& Entry : Current.Entries) {
+			if (Entry.StableId.IsNone() || !Entry.State.IsValid() || States.Contains(Entry.StableId)) return false;
+			States.Add(Entry.StableId, &Entry.State);
+		}
+		for (TActorIterator<AActor> It(World); It; ++It) {
+			if (It->Implements<UUTSaveable>() && IUTSaveable::Execute_GetSaveStableId(*It).IsNone()) return false;
+		}
+		TSet<FName> Seen;
+		for (const auto& Entry : Saved.Entries) {
+			const auto* Target = States.Find(Entry.StableId);
+			if (!Target || Seen.Contains(Entry.StableId) || !Entry.State.IsValid()
+				|| Entry.State.GetScriptStruct() != (*Target)->GetScriptStruct())
+				return false;
+			Seen.Add(Entry.StableId);
+		}
+		return Seen.Num() == States.Num();
+	}
 }
 
 void URoadToWisdomSaveCoordinator::NotifyPickupCollected(FName StableId)
@@ -60,6 +87,7 @@ void URoadToWisdomSaveCoordinator::DestroyCollectedPickups() const
 bool URoadToWisdomSaveCoordinator::SaveSession(ARoadToWisdomMissionManager* Mission)
 {
 	UWorld* World = GetGameInstance()->GetWorld();
+	if (World && UnsafeRestoreWorld.Get() == World) return false;
 	auto* Controller = Cast<ARoadToWisdomExplorerController>(UGameplayStatics::GetPlayerController(World, 0));
 	auto* Save = GetGameInstance()->GetSubsystem<UUTSaveSubsystem>();
 	if (!World || !Mission || !Controller || !Save || !CaptureAndWriteSections(Mission, Controller)) {
@@ -96,7 +124,9 @@ bool URoadToWisdomSaveCoordinator::CaptureAndWriteSections(
 		Entry.Item = Pair.Value->GetItem();
 	}
 	FUTWorldStateSnapshot Snapshot;
-	if (!WorldState->CaptureWorldState(Snapshot).IsSuccess() || Snapshot.Entries.IsEmpty()) return false;
+	if (!WorldState->CaptureWorldState(Snapshot).IsSuccess() || Snapshot.Entries.IsEmpty()
+		|| !ValidateWorld(World, Snapshot, Snapshot))
+		return false;
 	FQRMissionSection MissionSection;
 	MissionSection.Stage = static_cast<int32>(Mission->GetStage());
 	MissionSection.bLeverOn = Mission->Lever->bIsOn;
@@ -129,6 +159,7 @@ bool URoadToWisdomSaveCoordinator::TryRestoreSession(ARoadToWisdomExplorerContro
 	auto* Save = GetGameInstance()->GetSubsystem<UUTSaveSubsystem>();
 	UWorld* World = GetGameInstance()->GetWorld();
 	if (!Save || !World || !Controller || !Controller->VanPawn) return false;
+	if (UnsafeRestoreWorld.Get() == World) return false;
 	if (!Save->LoadFromSlot(GetSessionSlotName()).IsSuccess()) return false;
 	FQRMissionSection MissionSection;
 	FQRVehicleSection Vehicle;
@@ -158,17 +189,23 @@ bool URoadToWisdomSaveCoordinator::TryRestoreSession(ARoadToWisdomExplorerContro
 		return false;
 	auto* Mission = CastChecked<ARoadToWisdomMissionManager>(Managers[0]);
 	if (!Mission->FuseBox || !Mission->Lever) return false;
-	// This slice owns exactly one saveable type. UT ApplyWorldState is sequential,
-	// so validate its identity, schema and stage consistency before invoking it.
+	// Validate the complete identity/schema set before the sequential Toolkit replay.
 	FUTWorldStateSnapshot Current;
-	if (!WorldState->CaptureWorldState(Current).IsSuccess() || Current.Entries.Num() != 1 || Snapshot.Entries.Num() != 1)
-		return
-			false;
-	const auto& Entry = Snapshot.Entries[0];
-	const auto* Fuse = Entry.State.GetPtr<FQRFuseBoxState>();
-	if (!Fuse || Entry.StableId != Mission->FuseBox->GetSaveStableId_Implementation()
-		|| Entry.StableId != Current.Entries[0].StableId)
+	if (!WorldState->CaptureWorldState(Current).IsSuccess() || !ValidateWorld(World, Snapshot, Current)) {
+		UE_LOG(
+			LogRoadToWisdom, Warning,
+			TEXT("Restore rejected: world identities/schema differ; load all persistent actors or migrate the save.")
+		);
 		return false;
+	}
+	const auto* FuseEntry = Snapshot.Entries.FindByPredicate(
+		[Mission](const FUTWorldStateEntry& Entry)
+		{
+			return Entry.StableId == IUTSaveable::Execute_GetSaveStableId(Mission->FuseBox);
+		}
+	);
+	const auto* Fuse = FuseEntry ? FuseEntry->State.GetPtr<FQRFuseBoxState>() : nullptr;
+	if (!Fuse) return false;
 	if (Fuse->bFuseInstalled != (MissionSection.Stage >= static_cast<int32>(EQRRelayMissionStage::PullLever))
 		|| MissionSection.bLeverOn != (MissionSection.Stage == static_cast<int32>(EQRRelayMissionStage::Completed)))
 		return false;
@@ -237,8 +274,18 @@ bool URoadToWisdomSaveCoordinator::TryRestoreSession(ARoadToWisdomExplorerContro
 	FUTResult ApplyResult;
 	const int32 Applied = WorldState->ApplyWorldState(Snapshot, ApplyResult);
 	if (!ApplyResult.IsSuccess() || Applied != Snapshot.Entries.Num()) {
+		// Compensate even the rejecting actor: a false return need not imply no mutation.
+		FUTResult RollbackResult;
+		const int32 RolledBack = WorldState->ApplyWorldState(Current, RollbackResult);
 		for (auto* Pending : Prepared) Pending->Destroy();
 		UE_LOG(LogRoadToWisdom, Error, TEXT("WorldState rejected (%d entries): %s"), Applied, *ApplyResult.Message.ToString());
+		if (!RollbackResult.IsSuccess() || RolledBack != Current.Entries.Num()) {
+			UnsafeRestoreWorld = World;
+			UE_LOG(
+				LogRoadToWisdom, Error, TEXT("WorldState rollback failed: session unsafe; reload map before continuing. %s"),
+				*RollbackResult.Message.ToString()
+			);
+		}
 		return false;
 	}
 	for (int32 I = 0; I < Prepared.Num(); ++I) {
@@ -266,9 +313,8 @@ bool URoadToWisdomSaveCoordinator::TryRestoreSession(ARoadToWisdomExplorerContro
 
 FName URoadToWisdomSaveCoordinator::GetSessionSlotName()
 {
-#if WITH_DEV_AUTOMATION_TESTS
-    if (FParse::Param(FCommandLine::Get(), TEXT("QuietRoadAutomation")))
-        return TEXT("QuietRoad_Automation");
-#endif
-    return FName(SlotName);
+	#if WITH_DEV_AUTOMATION_TESTS
+	if (FParse::Param(FCommandLine::Get(), TEXT("QuietRoadAutomation"))) return TEXT("QuietRoad_Automation");
+	#endif
+	return FName(SlotName);
 }

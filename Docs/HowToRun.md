@@ -19,6 +19,26 @@ Open RoadToWisdom.uproject. EditorStartupMap and GameDefaultMap point to `/Game/
 
 The old L_QuietRoad_Prototype map was deleted on request. Vehicle Template and original Fab maps remain for reference. Earlier gameplay tests/tools naming that prototype are legacy, not acceptance tests for this new map.
 
+## Persistence regression (isolated scene)
+
+After building with the editor closed, run
+`powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Test-SaveSession.ps1`.
+The runner requires two passing exported Automation results (Persistence and RadioHold),
+not merely exit code zero. It uses only QuietRoad_Automation, never QuietRoad01.
+Reports: Saved/Automation/MultiSave/index.json; log: Saved/Logs/MultiSaveTests.log.
+The fixture /Game/Tests/L_SaveSession is separate from the production world and uses
+the existing Utility Van, mission classes, input and Toolkit. It does not certify
+the mission loop on the main World Partition map.
+To rebuild only the fixture, use UnrealEditor-Cmd with this project and
+`-run=pythonscript -script=<absolute path>/Tools/Editor/BuildSaveTestFixture.py -NullRHI -unattended`.
+The builder replaces only this dedicated fixture map; never run the retired prototype builder.
+
+World v1 remains compatible with the same authored saveable set. Every saveable must
+have a nonempty unique ID and valid state. Restore requires the same loaded ID/type set;
+load all persistent actors first. Adding mandatory actors requires explicit migration.
+On actor rejection the coordinator compensates from the previous snapshot. If that
+also fails, reload the map: further save/restore is blocked for that world.
+
 ## Generate World
 
 Edit `Config/WorldGeneration.json`. Settings: Seed, WorldSize (1008 / 2016 / 4032 m), TerrainVariation, RoadDensity, POIDensity, VegetationDensity, RockDensity. Defaults produce a 4032 m region.
@@ -104,3 +124,14 @@ The wheel regression also checks actual skinned vertices relative to each wheel 
 Motion blur is disabled globally by r.DefaultFeature.MotionBlur=False and r.MotionBlurQuality=0. The van mesh also disables per-bone blur. When importing the van, the editor helper restores the LOD active/required bone lists from skin sections; wheel regression checks use the render-path matrices, not the unfiltered bone cache.
 
 Utility Van lighting: press L while driving to toggle headlights and rear running lights. Braking or the handbrake brightens the rear lights; verify placement and appearance in PIE.
+
+## Vehicle input release — 2026-11-02
+
+Completed and Canceled vehicle actions now explicitly clear steering/throttle,
+service brake and handbrake. Releasing throttle no longer calls DoThrottle(0),
+which also cleared a simultaneously held service brake. This affects the common
+vehicle pawn used by Utility Van and retained template vehicles.
+Manual check: hold brake and throttle, release throttle, confirm brake remains;
+release/cancel each input and confirm its command clears. Context removal and
+window focus changes still require actual PIE checks; no blanket guarantee of
+focus-loss handling is made by these action bindings.

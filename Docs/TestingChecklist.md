@@ -221,3 +221,45 @@ Fresh-reopen wheel check: after the updated importer completed with 0 errors / 0
 - Global project settings disable motion blur using r.DefaultFeature.MotionBlur=False and r.MotionBlurQuality=0. Values were verified in the editor and PIE after restart. Full road-network driving and visual evaluation from every camera were not repeated.
 
 - Utility Van lighting: manual-check-required — in PIE, check L, headlights, rear running lights, brake and handbrake, including light placement.
+
+## Vehicle input release — 2026-11-02
+
+- implemented: explicit Completed/Canceled resets for vehicle steering, throttle,
+  service brake and handbrake. Throttle release preserves the service brake.
+- manual-check-required: in PIE hold brake + throttle and release throttle;
+  verify brake remains, then release it. Check steering and handbrake release,
+  input-context cancellation, and retained Offroad controls.
+- The editor was closed during the code review. No PIE result is claimed.
+- compiled: RoadToWisdomEditor Win64 Development succeeded in this session;
+  evidence Saved/Logs/InputReleaseBuild.log (Result: Succeeded).
+  Toolkit emitted StructUtils dependency and deprecated GetIfValid warnings;
+  no build errors. Asset budget and git diff --check passed.
+
+
+## Multi-object persistence - 2026-11-03
+
+- compiled: UE 5.8.4 Editor Development; Saved/Logs/MultiSaveBuild.log.
+- editor-verified: dedicated /Game/Tests/L_SaveSession rebuilt and saved with
+  zero errors/warnings (Saved/Logs/SaveFixtureBuild.log), then reopened in six PIE sessions.
+- editor-verified: QuietRoad.Session.Persistence and QuietRoad.Session.RadioHold
+  passed. Export: Saved/Automation/MultiSave/index.json: 1 succeeded,
+  1 succeededWithWarnings, 0 failed, 0 notRun. The persistence warnings are deliberate
+  negative cases, including absent IDs and refused restores; expected error logs
+  are matched explicitly. Runner validates the fresh report, not just exit code.
+- Persistence covers World v1 with one, two and three objects (fuse box + doors),
+  reversed entry order, repeated restore, missing/unknown/duplicate/empty IDs,
+  invalid/wrong state types, duplicate/unconfigured live identities, absent live
+  actors, rejection after mutation, compensation and failed-compensation lockout.
+  Five PIE phases retain pre-pickup, partial stacks, inventory capacity/range,
+  installation, completion and restart regression; the fuse is not duplicated.
+- Radio covers real camera focus, Toolkit hold timer, tap, early release,
+  successful disk save and cancellation. The fixture uses a deterministic short
+  camera and an external panel above the settled chassis; this does not certify
+  production third-person framing or physical keyboard comfort.
+- Existing QuietRoad.Session.DriveAndRestore still targets the retired prototype
+  and is excluded from this runner by explicit test prefixes. No driving-route
+  acceptance is claimed. A broad Session prefix was stopped during investigation.
+- manual-check-required: full player loop on the main World Partition map,
+  keyboard/camera usability, production UI for unrecoverable restore errors.
+  All persistent actors must currently be loaded; unloaded-cell persistence is not
+  implemented. Toolkit sources and the production map were not changed.

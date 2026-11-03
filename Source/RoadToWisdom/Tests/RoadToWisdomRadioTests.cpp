@@ -13,6 +13,7 @@
 #include "Gameplay/Save/RoadToWisdomSaveCoordinator.h"
 #include "UTInteractorComponent.h"
 #include "VehicleTemplate/Core/RoadToWisdomPawn.h"
+#include "GameFramework/SpringArmComponent.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FQRRadioSmoke, "QuietRoad.Session.RadioHold",
@@ -26,7 +27,7 @@ bool FQRRadioSmoke::RunTest(const FString&)
 		return false;
 	}
 	UGameplayStatics::DeleteGameInSlot(TEXT("QuietRoad_Automation"), 0);
-	ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(TEXT("/Game/QuietRoad/Maps/L_QuietRoad_Prototype")));
+	ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(TEXT("/Game/Tests/L_SaveSession")));
 	ADD_LATENT_AUTOMATION_COMMAND(FStartPIECommand(false));
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(2.f));
 	ADD_LATENT_AUTOMATION_COMMAND(
@@ -44,7 +45,13 @@ bool FQRRadioSmoke::RunTest(const FString&)
 			FVector Position=Radio->GetActorLocation()-Side*200.f;
 			Position.Z=100.f;
 			Character->SetActorLocation(Position);
-			PC->SetControlRotation(Side.Rotation());
+			// Use a deterministic camera in this input/hold fixture. Vehicle art and
+			// third-person framing are outside this test; focus still uses real traces.
+			auto* Boom = Character->FindComponentByClass<USpringArmComponent>();
+			Boom->TargetArmLength = 0.f;
+			Boom->SocketOffset = FVector::ZeroVector;
+			Boom->bEnableCameraLag = false;
+			PC->SetControlRotation((Radio->GetActorLocation() - Position).Rotation());
 			TestEqual(TEXT("Radio attached to camper"),Radio->GetAttachParentActor(),static_cast<AActor*>(PC->GetVanPawn()));
 			return true;
 			})
@@ -55,6 +62,16 @@ bool FQRRadioSmoke::RunTest(const FString&)
 			{
 			auto* Character=Cast<ARoadToWisdomOnFootCharacter>(UGameplayStatics::GetPlayerPawn(GEditor->PlayWorld,0));
 			if (!Character) return true;
+			FVector View; FRotator ViewRotation;
+			Character->GetController()->GetPlayerViewPoint(View, ViewRotation);
+			AddInfo(FString::Printf(TEXT("Radio fixture view %s rotation %s pawn %s"),
+				*View.ToString(), *ViewRotation.ToString(), *Character->GetActorLocation().ToString()));
+			for (TActorIterator<ARoadToWisdomVanRadioPanel> I(GEditor->PlayWorld); I; ++I)
+			AddInfo(FString::Printf(TEXT("Radio target %s"), *I->GetActorLocation().ToString()));
+			FHitResult Hit;
+			FCollisionQueryParams Query; Query.AddIgnoredActor(Character);
+			GEditor->PlayWorld->LineTraceSingleByChannel(Hit, View, View + ViewRotation.Vector()*650.f, ECC_Visibility, Query);
+			AddInfo(FString::Printf(TEXT("Radio view hit %s at %s"), *GetNameSafe(Hit.GetActor()), *Hit.ImpactPoint.ToString()));
 			Character->GetInteractor()->UpdateFocus();
 			TestNotNull(TEXT("Camera trace focuses radio"),Cast<ARoadToWisdomVanRadioPanel>(Character->GetInteractor()->
 				GetFocusedActor()));

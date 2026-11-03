@@ -85,7 +85,8 @@ struct FQRPlayerSection
  *
  *  Sections: "Mission" (stage + lever), "Inventory" (UT inventory snapshot),
  *  "World" (UT world-state snapshot of all IUTSaveable actors), "Vehicle" and
- *  "Player" (placement + mode). Saved at mission stage commits; restored once from
+ *  "Player" (placement + mode), "Pickups" (collected ids and remainders).
+ *  Saved at mission stage commits; restored once from
  *  BeginPlay of the explorer controller. Single-player slice: direct synchronous
  *  calls on the game thread.
  */
@@ -124,6 +125,8 @@ protected:
 	/** Ids collected during this session (persisted via the Pickups section). */
 	UPROPERTY()
 	TArray<FName> CollectedPickupIds;
+	/** Failed compensation blocks persistence until the world is reloaded. */
+	TWeakObjectPtr<UWorld> UnsafeRestoreWorld;
 
 	bool CaptureAndWriteSections(ARoadToWisdomMissionManager* Mission, ARoadToWisdomExplorerController* Controller);
 };

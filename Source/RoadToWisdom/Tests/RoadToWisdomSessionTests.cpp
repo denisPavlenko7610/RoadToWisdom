@@ -19,6 +19,9 @@
 #include "VehicleTemplate/Core/RoadToWisdomPawn.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
+#include "Tests/RoadToWisdomSaveTestDoor.h"
+#include "UTWorldStateSubsystem.h"
+#include "Algo/Reverse.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FQRSessionSmoke, "QuietRoad.Session.Persistence",
@@ -33,7 +36,7 @@ bool FQRSessionSmoke::RunTest(const FString&)
 	}
 	UGameplayStatics::DeleteGameInSlot(TEXT("QuietRoad_Automation"), 0);
 	for (int32 Phase = 0; Phase < 5; ++Phase) {
-		ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(TEXT("/Game/QuietRoad/Maps/L_QuietRoad_Prototype")));
+		ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(TEXT("/Game/Tests/L_SaveSession")));
 		ADD_LATENT_AUTOMATION_COMMAND(FStartPIECommand(false));
 		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(2.f));
 		ADD_LATENT_AUTOMATION_COMMAND(
@@ -67,7 +70,69 @@ bool FQRSessionSmoke::RunTest(const FString&)
 				auto* Pickup = Pickups[0];
 				if (Phase == 0)
 				{
+				// Old World v1 single-object saves still round-trip unchanged.
 				TestTrue(TEXT("Save before pickup"), Coordinator->SaveSession(Mission));
+				TestTrue(TEXT("Legacy single-object restore"), Coordinator->TryRestoreSession(PC));
+				PC->ApplyPendingSessionRestore();
+				auto* DoorA = World->SpawnActor<ARoadToWisdomSaveTestDoor>();
+				auto* DoorB = World->SpawnActor<ARoadToWisdomSaveTestDoor>();
+				DoorA->StableId = TEXT("Test.DoorA");
+				DoorB->StableId = TEXT("Test.DoorB");
+				DoorA->SetOpen(true);
+				TestTrue(TEXT("Capture three saveables"), Coordinator->SaveSession(Mission));
+				FUTWorldStateSnapshot Good;
+				TestTrue(TEXT("Read World v1"), Save->ReadSection(TEXT("World"), 1, Good).IsSuccess());
+				TestEqual(TEXT("Three world entries"), Good.Entries.Num(), 3);
+				Algo::Reverse(Good.Entries);
+				auto WriteWorld = [&](const FUTWorldStateSnapshot& State) {
+				TestTrue(TEXT("Write test World"), Save->WriteSection(TEXT("World"), 1, State).IsSuccess());
+				TestTrue(TEXT("Flush test slot"), Save->SaveToSlot(Coordinator->GetSessionSlotName()).IsSuccess());
+				};
+				WriteWorld(Good);
+				DoorA->SetOpen(false); DoorB->SetOpen(true);
+				TestTrue(TEXT("Restore reordered heterogeneous entries"), Coordinator->TryRestoreSession(PC));
+				PC->ApplyPendingSessionRestore();
+				TestTrue(TEXT("Door A restored"), DoorA->IsOpen());
+				TestFalse(TEXT("Door B restored"), DoorB->IsOpen());
+				TestTrue(TEXT("Repeated restore"), Coordinator->TryRestoreSession(PC));
+				PC->ApplyPendingSessionRestore();
+				auto Reject = [&](const FUTWorldStateSnapshot& Bad, const TCHAR* Label) {
+				WriteWorld(Bad);
+				TestFalse(Label, Coordinator->TryRestoreSession(PC));
+				TestTrue(TEXT("Rejected restore preserves A"), DoorA->IsOpen());
+				TestFalse(TEXT("Rejected restore preserves B"), DoorB->IsOpen());
+				TestFalse(TEXT("Rejected restore queues no player mutation"), PC->bHasPendingRestore);
+				};
+				FUTWorldStateSnapshot Bad = Good;
+				Bad.Entries[0].StableId = NAME_None; Reject(Bad, TEXT("Empty id rejected"));
+				Bad = Good; Bad.Entries[0].StableId = Bad.Entries[1].StableId; Reject(Bad, TEXT("Duplicate id rejected"));
+				Bad = Good; Bad.Entries[0].StableId = TEXT("Test.Missing"); Reject(Bad, TEXT("Unknown id rejected"));
+				Bad = Good; Bad.Entries.Pop(); Reject(Bad, TEXT("Missing entry rejected"));
+				Bad = Good; Bad.Entries[0].State.Reset(); Reject(Bad, TEXT("Empty state rejected"));
+				Bad = Good; Bad.Entries[0].State = FInstancedStruct::Make(FQRPlayerSection()); Reject(Bad, TEXT(
+					"Wrong state type rejected"));
+				WriteWorld(Good);
+				DoorB->StableId = DoorA->StableId;
+				TestFalse(TEXT("Duplicate live identity rejected"), Coordinator->TryRestoreSession(PC));
+				TestFalse(TEXT("Duplicate live identity cannot be saved"), Coordinator->SaveSession(Mission));
+				DoorB->StableId = NAME_None;
+				TestFalse(TEXT("Unconfigured live identity cannot be saved"), Coordinator->SaveSession(Mission));
+				DoorB->StableId = TEXT("Test.DoorB");
+				DoorA->SetOpen(false); DoorB->SetOpen(true);
+				DoorB->bRejectNextRestore = true;
+				AddExpectedError(TEXT("WorldState rejected"), EAutomationExpectedErrorFlags::Contains, 1);
+				TestFalse(TEXT("Actor refusal rejects session"), Coordinator->TryRestoreSession(PC));
+				TestFalse(TEXT("Rollback restores A"), DoorA->IsOpen());
+				TestTrue(TEXT("Rollback restores rejecting B"), DoorB->IsOpen());
+				DoorB->Destroy();
+				TestFalse(TEXT("Streamed-out or absent actor rejected"), Coordinator->TryRestoreSession(PC));
+				TestTrue(TEXT("Save two objects"), Coordinator->SaveSession(Mission));
+				DoorA->SetOpen(true);
+				TestTrue(TEXT("Restore two objects"), Coordinator->TryRestoreSession(PC));
+				PC->ApplyPendingSessionRestore();
+				TestFalse(TEXT("Two-object door restored"), DoorA->IsOpen());
+				DoorA->Destroy();
+				TestTrue(TEXT("Return to single-object session"), Coordinator->SaveSession(Mission));
 				Character->SetActorLocation(Pickup->GetActorLocation() + FVector(1000, 0, 0));
 				Pickup->Interact_Implementation(Info);
 				TestTrue(TEXT("Out-of-range pickup retained"), IsValid(Pickup));
@@ -164,6 +229,16 @@ bool FQRSessionSmoke::RunTest(const FString&)
 				Save->SaveToSlot(URoadToWisdomSaveCoordinator::GetSessionSlotName());
 				TestFalse(TEXT("Missing mandatory section rejects whole restore"), Coordinator->TryRestoreSession(PC));
 				TestTrue(TEXT("Rejected restore does not change socket"), Box->bFuseInstalled);
+				auto* RefusingDoor = World->SpawnActor<ARoadToWisdomSaveTestDoor>();
+				RefusingDoor->StableId = TEXT("Test.PersistentRefusal");
+				TestTrue(TEXT("Prepare rollback failure slot"), Coordinator->SaveSession(Mission));
+				RefusingDoor->bRejectEveryRestore = true;
+				AddExpectedError(TEXT("WorldState rejected"), EAutomationExpectedErrorFlags::Contains, 1);
+				AddExpectedError(TEXT("WorldState rollback failed"), EAutomationExpectedErrorFlags::Contains, 1);
+				TestFalse(TEXT("Rollback failure rejects session"), Coordinator->TryRestoreSession(PC));
+				RefusingDoor->bRejectEveryRestore = false;
+				TestFalse(TEXT("Unsafe world cannot overwrite slot"), Coordinator->SaveSession(Mission));
+				TestFalse(TEXT("Unsafe world requires map reload"), Coordinator->TryRestoreSession(PC));
 				UGameplayStatics::DeleteGameInSlot(TEXT("QuietRoad_Automation"), 0);
 				}
 				return true;
